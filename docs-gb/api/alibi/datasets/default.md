@@ -1,26 +1,4 @@
 # `alibi.datasets.default`
-## Constants
-### `logger`
-```python
-logger: Logger = <Logger alibi.datasets.default (WARNING)>
-```
-### `ADULT_URLS`
-```python
-ADULT_URLS: list = [ 'https://storage.googleapis.com/seldon-datasets/adult/adult.data',
-  'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
-  'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data']
-```
-### `MOVIESENTIMENT_URLS`
-```python
-MOVIESENTIMENT_URLS: list = [ 'https://storage.googleapis.com/seldon-datasets/sentence_polarity_v1/rt-polaritydata.tar.gz',
-  'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
-```
-### `IMAGENET_URLS`
-```python
-IMAGENET_URLS: list = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.tar.gz']
-```
-TODO change storage format.
-
 ## Functions
 ### `fetch_adult`
 
@@ -33,6 +11,21 @@ Downloads and pre-processes 'adult' dataset.
 More info: http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/
 
 Parameters
+----------
+features_drop
+    List of features to be dropped from dataset, by default drops ``["fnlwgt", "Education-Num"]``.
+return_X_y
+    If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object.
+url_id
+    Index specifying which URL to use for downloading.
+
+Returns
+-------
+Bunch
+    Dataset, labels, a list of features and a dictionary containing a list with the potential categories
+    for each categorical feature where the key refers to the feature column.
+(data, target)
+    Tuple if ``return_X_y=True``
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -85,6 +78,18 @@ The train set contains 1000 random samples, 100 for each of the following 10 sel
 The test set contains 50 random samples, 5 for each of the classes above.
 
 Parameters
+----------
+url_id
+    Index specifying which URL to use for downloading.
+
+Returns
+-------
+Dictionary with the following keys:
+
+    * trainset - train set tuple (X_train, y_train)
+    * testset - test set tuple (X_test, y_test)
+    * int_to_str_labels - map from target to target name
+    * str_to_int_labels -  map from target name to target
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -102,6 +107,18 @@ fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[alibi.
 The movie review dataset, equally split between negative and positive reviews.
 
 Parameters
+----------
+return_X_y
+    If ``True``, return features `X` and labels `y` as `Python` lists. If ``False`` return a `Bunch` object.
+url_id
+    Index specifying which URL to use for downloading
+
+Returns
+-------
+Bunch
+    Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
+(data, target)
+    Tuple if ``return_X_y=True``.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -123,6 +140,19 @@ The images were hand-collected using flickr.com by searching for various cat typ
 in the public domain.
 
 Parameters
+----------
+target_size
+    Size of the returned images, used to crop images for a specified model input size.
+return_X_y
+    If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object
+
+Returns
+-------
+Bunch
+    Bunch object with fields 'data', 'target' and 'target_names'. Both `targets` and `target_names` are taken from
+    the original Imagenet.
+(data, target)
+    Tuple if ``return_X_y=True``.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

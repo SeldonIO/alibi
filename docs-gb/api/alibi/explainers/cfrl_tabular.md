@@ -1,17 +1,4 @@
 # `alibi.explainers.cfrl_tabular`
-## Constants
-### `TYPE_CHECKING`
-```python
-TYPE_CHECKING: bool = False
-```
-### `has_pytorch`
-```python
-has_pytorch: bool = True
-```
-### `has_tensorflow`
-```python
-has_tensorflow: bool = True
-```
 ## `ConcatTabularPostprocessing`
 
 _Inherits from:_ `Postprocessing`, `ABC`
@@ -60,6 +47,35 @@ explain(X: numpy.ndarray, Y_t: numpy.ndarray, C: Optional[List[Dict[str, List[Un
 Computes counterfactuals for the given instances conditioned on the target and the conditional vector.
 
 Parameters
+----------
+X
+    Input instances to generate counterfactuals for.
+Y_t
+    Target labels.
+C
+    List of conditional dictionaries. If ``None``, it means that no conditioning was used during training
+    (i.e. the `conditional_func` returns ``None``). If conditioning was used during training but no
+    conditioning is desired for the current input, an empty list is expected.
+diversity
+    Whether to generate diverse counterfactual set for the given instance. Only supported for a single
+    input instance.
+num_samples
+    Number of diversity samples to be generated. Considered only if ``diversity=True``.
+batch_size
+    Batch size to use when generating counterfactuals.
+patience
+    Maximum number of iterations to perform diversity search stops. If -1, the search stops only if
+    the desired number of samples has been found.
+tolerance
+    Tolerance to distinguish two counterfactual instances.
+
+Returns
+-------
+explanation
+    `Explanation` object containing the counterfactual with additional metadata as attributes.             See usage `CFRL examples`_ for details.
+
+    .. _CFRL examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

@@ -1,28 +1,4 @@
 # `alibi.explainers.cem`
-## Constants
-### `DEFAULT_DATA_CEM`
-```python
-DEFAULT_DATA_CEM: dict = { 'PN': None,
-  'PN_pred': None,
-  'PP': None,
-  'PP_pred': None,
-  'X': None,
-  'X_pred': None,
-  'grads_graph': None,
-  'grads_num': None}
-```
-### `DEFAULT_META_CEM`
-```python
-DEFAULT_META_CEM: dict = { 'explanations': ['local'],
-  'name': None,
-  'params': {},
-  'type': ['blackbox', 'tensorflow', 'keras'],
-  'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.cem (WARNING)>
-```
 ## `CEM`
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`
@@ -67,6 +43,17 @@ Find pertinent negative or pertinent positive for instance `X` using a fast iter
 shrinkage-thresholding algorithm (FISTA).
 
 Parameters
+----------
+X
+    Instance to attack.
+Y
+    Labels for `X`.
+verbose
+    Print intermediate results of optimization if ``True``.
+
+Returns
+-------
+Overall best attack and gradients for that attack.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -86,6 +73,22 @@ explain(X: numpy.ndarray, Y: Optional[numpy.ndarray] = None, verbose: bool = Fal
 Explain instance and return PP or PN with metadata.
 
 Parameters
+----------
+X
+    Instances to attack.
+Y
+    Labels for `X`.
+verbose
+    Print intermediate results of optimization if ``True``.
+
+Returns
+-------
+explanation
+    `Explanation` object containing the PP or PN with additional metadata as attributes.
+    See usage at `CEM examples`_ for details.
+
+    .. _CEM examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -105,6 +108,11 @@ fit(train_data: numpy.ndarray, no_info_type: str = 'median') -> alibi.explainers
 Get 'no information' values from the training data.
 
 Parameters
+----------
+train_data
+    Representative sample from the training data.
+no_info_type
+    Median or mean value by feature supported.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -125,6 +133,15 @@ Compute numerical gradients of the attack loss term:
 `dL/dx = (dL/dP)*(dP/dx)` with `L = loss_attack_s; P = predict; x = adv_s`
 
 Parameters
+----------
+X
+    Instance around which gradient is evaluated.
+Y
+    One-hot representation of instance labels.
+
+Returns
+-------
+Array with gradients.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -143,6 +160,15 @@ loss_fn(pred_proba: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
 Compute the attack loss.
 
 Parameters
+----------
+pred_proba
+    Prediction probabilities of an instance.
+Y
+    One-hot representation of instance labels.
+
+Returns
+-------
+Loss of the attack.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -161,6 +187,18 @@ perturb(X: numpy.ndarray, eps: Union[float, numpy.ndarray], proba: bool = False)
 Apply perturbation to instance or prediction probabilities. Used for numerical calculation of gradients.
 
 Parameters
+----------
+X
+    Array to be perturbed.
+eps
+    Size of perturbation.
+proba
+    If ``True``, the net effect of the perturbation needs to be 0 to keep the sum of the
+    probabilities equal to 1.
+
+Returns
+-------
+Instances where a positive and negative perturbation is applied.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -180,6 +218,9 @@ reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> Non
 Resets the predictor function/model.
 
 Parameters
+----------
+predictor
+    New predictor function/model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

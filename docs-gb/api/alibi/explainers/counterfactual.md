@@ -1,21 +1,4 @@
 # `alibi.explainers.counterfactual`
-## Constants
-### `DEFAULT_DATA_CF`
-```python
-DEFAULT_DATA_CF: dict = {'all': [], 'cf': None, 'orig_class': None, 'orig_proba': None, 'success': None}
-```
-### `DEFAULT_META_CF`
-```python
-DEFAULT_META_CF: dict = { 'explanations': ['local'],
-  'name': None,
-  'params': {},
-  'type': ['blackbox', 'tensorflow', 'keras'],
-  'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.counterfactual (WARNING)>
-```
 ## `Counterfactual`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`
@@ -58,6 +41,18 @@ explain(X: numpy.ndarray) -> alibi.api.interfaces.Explanation
 Explain an instance and return the counterfactual with metadata.
 
 Parameters
+----------
+X
+    Instance to be explained.
+
+Returns
+-------
+explanation
+    `Explanation` object containing the counterfactual with additional metadata as attributes.
+    See usage at `Counterfactual examples`_ for details.
+
+    .. _Counterfactual examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -75,6 +70,16 @@ fit(X: numpy.ndarray, y: Optional[numpy.ndarray]) -> alibi.explainers.counterfac
 Fit method - currently unused as the counterfactual search is fully unsupervised.
 
 Parameters
+----------
+X
+    Not used. Included for consistency.
+y
+    Not used. Included for consistency.
+
+Returns
+-------
+self
+    Explainer itself.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -93,6 +98,9 @@ reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> Non
 Resets the predictor function/model.
 
 Parameters
+----------
+predictor
+    New predictor function/model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

@@ -1,9 +1,4 @@
 # `alibi.api.interfaces`
-## Constants
-### `logger`
-```python
-logger: Logger = <Logger alibi.api.interfaces (WARNING)>
-```
 ## `AlibiPrettyPrinter`
 
 _Inherits from:_ `PrettyPrinter`
@@ -62,6 +57,15 @@ load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfac
 Load an explainer from disk.
 
 Parameters
+----------
+path
+    Path to a directory containing the saved explainer.
+predictor
+    Model or prediction function used to originally initialize the explainer.
+
+Returns
+-------
+An explainer instance.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -80,6 +84,9 @@ reset_predictor(predictor: typing.Any) -> None
 Resets the predictor.
 
 Parameters
+----------
+predictor
+    New predictor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -97,6 +104,9 @@ save(path: Union[str, os.PathLike]) -> None
 Save an explainer to disk. Uses the `dill` module.
 
 Parameters
+----------
+path
+    Path to a directory. A new directory will be created if one does not exist.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -131,6 +141,13 @@ from_json(jsonrepr) -> alibi.api.interfaces.Explanation
 Create an instance of an `Explanation` class using a `json` representation of the `Explanation`.
 
 Parameters
+----------
+jsonrepr
+    `json` representation of an explanation.
+
+Returns
+-------
+An Explanation object.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -148,6 +165,8 @@ to_json() -> str
 Serialize the explanation data and metadata into a `json` format.
 
 Returns
+-------
+String containing `json` representation of the explanation.
 
 **Returns**
 - Type: `str`

@@ -11,6 +11,15 @@ Compute KL-divergence between 2 probabilities `p` and `q`. `len(p)` divergences 
 simultaneously.
 
 Parameters
+----------
+p
+    Probability.
+q
+    Probability.
+
+Returns
+-------
+Array with the KL-divergence between `p` and `q`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

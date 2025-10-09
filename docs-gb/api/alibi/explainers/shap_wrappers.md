@@ -1,88 +1,4 @@
 # `alibi.explainers.shap_wrappers`
-## Constants
-### `TYPE_CHECKING`
-```python
-TYPE_CHECKING: bool = False
-```
-### `DEFAULT_DATA_KERNEL_SHAP`
-```python
-DEFAULT_DATA_KERNEL_SHAP: dict = { 'categorical_names': {},
-  'expected_value': [],
-  'feature_names': [],
-  'raw': {'importances': {}, 'instances': None, 'prediction': None, 'raw_prediction': None},
-  'shap_values': []}
-```
-### `DEFAULT_DATA_TREE_SHAP`
-```python
-DEFAULT_DATA_TREE_SHAP: dict = { 'categorical_names': {},
-  'expected_value': [],
-  'feature_names': [],
-  'raw': { 'importances': {},
-           'instances': None,
-           'labels': None,
-           'loss': None,
-           'prediction': None,
-           'raw_prediction': None},
-  'shap_interaction_values': [],
-  'shap_values': []}
-```
-### `DEFAULT_META_KERNEL_SHAP`
-```python
-DEFAULT_META_KERNEL_SHAP: dict = { 'explanations': ['local', 'global'],
-  'name': None,
-  'params': { 'group_names': None,
-              'grouped': None,
-              'groups': None,
-              'kwargs': None,
-              'link': None,
-              'summarise_background': None,
-              'summarise_result': None,
-              'transpose': None,
-              'weights': None},
-  'task': None,
-  'type': ['blackbox'],
-  'version': None}
-```
-### `DEFAULT_META_TREE_SHAP`
-```python
-DEFAULT_META_TREE_SHAP: dict = { 'explanations': ['local', 'global'],
-  'name': None,
-  'params': { 'algorithm': None,
-              'approximate': None,
-              'explain_loss': None,
-              'interactions': None,
-              'kwargs': None,
-              'model_output': None,
-              'summarise_background': None,
-              'summarise_result': None},
-  'task': None,
-  'type': ['whitebox'],
-  'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.shap_wrappers (WARNING)>
-```
-### `KERNEL_SHAP_BACKGROUND_THRESHOLD`
-```python
-KERNEL_SHAP_BACKGROUND_THRESHOLD: int = 300
-```
-### `DISTRIBUTED_OPTS`
-```python
-DISTRIBUTED_OPTS: dict = {'batch_size': 1, 'n_cpus': None}
-```
-### `TREE_SHAP_BACKGROUND_SUPPORTED_SIZE`
-```python
-TREE_SHAP_BACKGROUND_SUPPORTED_SIZE: int = 100
-```
-### `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD`
-```python
-TREE_SHAP_BACKGROUND_WARNING_THRESHOLD: int = 1000
-```
-### `TREE_SHAP_MODEL_OUTPUT`
-```python
-TREE_SHAP_MODEL_OUTPUT: list = ['raw', 'probability', 'probability_doubled', 'log_loss']
-```
 ## `KernelExplainerWrapper`
 
 _Inherits from:_ `KernelExplainer`, `Explainer`, `Serializable`
@@ -111,6 +27,12 @@ Wrapper around `shap.KernelExplainer.shap_values` that allows calling the method
 batch index and a batch of instances.
 
 Parameters
+----------
+X
+    When called from a distributed context, it is a tuple containing a batch index and a batch to be explained.
+    Otherwise, it is an array of instances to be explained.
+**kwargs
+    `shap.KernelExplainer.shap_values` kwarg values.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -167,6 +89,39 @@ explain(X: Union[numpy.ndarray, pandas.core.frame.DataFrame, scipy.sparse._matri
 Explains the instances in the array `X`.
 
 Parameters
+----------
+X
+    Instances to be explained.
+summarise_result
+    Specifies whether the shap values corresponding to dimensions of encoded categorical variables should be
+    summed so that a single shap value is returned for each categorical variable. Both the start indices of
+    the categorical variables (`cat_vars_start_idx`) and the encoding dimensions (`cat_vars_enc_dim`)
+    have to be specified
+cat_vars_start_idx
+    The start indices of the categorical variables. If specified, `cat_vars_enc_dim` should also be specified.
+cat_vars_enc_dim
+    The length of the encoding dimension for each categorical variable. If specified `cat_vars_start_idx` should
+    also be specified.
+**kwargs
+    Keyword arguments specifying explain behaviour. Valid arguments are:
+
+        - `nsamples` - controls the number of predictor calls and therefore runtime.
+        
+        - `l1_reg` - the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will                 first run a feature selection algorithm to select the top features, provided the fraction of sampled                 sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information                 Criterion is used in this case. See our examples for more details about available settings for this                 parameter. Note that by first running a feature selection step, the shapley values of the remainder of                 the features will be different to those estimated from the entire set.
+
+    For more details, please see the shap library `documentation`_ .
+
+        .. _documentation:
+           https://shap.readthedocs.io/en/stable/.
+
+Returns
+-------
+explanation
+    An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
+    field containing additional data. See usage at `KernelSHAP examples`_ for details.
+
+    .. _KernelSHAP examples:
+       https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -196,6 +151,31 @@ reduces slightly the number of calls to the predictor. Further runtime savings c
 to experiment with a runtime reduction method and understand results stability before using the system.
 
 Parameters
+-----------
+background_data
+    Data used to estimate feature contributions and baseline values for force plots. The rows of the
+    background data should represent samples and the columns features.
+summarise_background
+    A large background dataset impacts the runtime and memory footprint of the algorithm. By setting
+    this argument to ``True``, only `n_background_samples` from the provided data are selected. If
+    group_names or groups arguments are specified, the algorithm assumes that the data contains categorical
+    variables so the records are selected uniformly at random. Otherwise, `shap.kmeans` (a wrapper
+    around `sklearn` k-means implementation) is used for selection. If set to ``'auto'``, a default of
+    `KERNEL_SHAP_BACKGROUND_THRESHOLD` samples is selected.
+n_background_samples
+    The number of samples to keep in the background dataset if ``summarise_background=True``.
+groups:
+    A list containing sub-lists specifying the indices of features belonging to the same group.
+group_names:
+    If specified, this array is used to treat groups of features as one during feature perturbation.
+    This feature can be useful, for example, to treat encoded categorical variables as one and can
+    result in computational savings (this may require adjusting the `nsamples` parameter).
+weights:
+    A sequence or array of weights. This is used only if grouping is specified and assigns a weight
+    to each point in the dataset.
+**kwargs:
+    Expected keyword arguments include `keep_index` (bool) and should be used if a data frame containing an
+    index column is passed to the algorithm.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -218,6 +198,9 @@ reset_predictor(predictor: Callable) -> None
 Resets the prediction function.
 
 Parameters
+----------
+predictor
+    New prediction function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -260,6 +243,48 @@ time. This is only possible if the explainer has been fitted with a background d
 requires setting `model_output='log_loss'`.
 
 Parameters
+----------
+X
+    Instances to be explained.
+y
+    Labels corresponding to rows of `X`. Should be passed only if a background dataset was passed to the
+    `fit` method.
+interactions
+    If ``True``, the shap value for every feature of every instance in `X` is decomposed into
+    `X.shape[1] - 1` shap value interactions and one main effect. This is only supported if `fit` is called
+    with `background_dataset=None`.
+approximate
+    If ``True``, an approximation to the shap values that does not account for feature order is computed. This
+    was proposed by `Ando Sabaas`_ here . Check `this`_ resource for more details. This option is currently
+    only supported for `xgboost` and `sklearn` models.
+
+    .. _Ando Sabaas:
+       https://github.com/andosa/treeinterpreter
+
+    .. _this:
+       https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_MOESM1_ESM.pdf
+
+check_additivity
+    If ``True``, output correctness is ensured if ``model_output='raw'`` has been passed to the constructor.
+tree_limit
+    Explain the output of a subset of the first `tree_limit` trees in an ensemble model.
+summarise_result
+    This should be set to ``True`` only when some of the columns in `X` represent encoded dimensions of a
+    categorical variable and one single shap value per categorical variable is desired. Both
+    `cat_vars_start_idx` and `cat_vars_enc_dim` should be specified as detailed below to allow this.
+cat_vars_start_idx
+    The start indices of the categorical variables.
+cat_vars_enc_dim
+    The length of the encoding dimension for each categorical variable.
+
+Returns
+-------
+explanation
+    An `Explanation` object containing the shap values and prediction in the `data` field, along with a
+    `meta` field containing additional data. See usage at `TreeSHAP examples`_ for details.
+
+    .. _TreeSHAP examples:
+       https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -293,6 +318,18 @@ the model loss function can be explained by passing the labels as the `y` argume
 A limited number of loss functions are supported, as detailed in the constructor documentation.
 
 Parameters
+-----------
+background_data
+    Data used to estimate feature contributions and baseline values for force plots. The rows of the
+    background data should represent samples and the columns features.
+summarise_background
+    A large background dataset may impact the runtime and memory footprint of the algorithm. By setting
+    this argument to ``True``, only `n_background_samples` from the provided data are selected. If the
+    `categorical_names` argument has been passed to the constructor, subsampling of the data is used.
+    Otherwise, `shap.kmeans` (a wrapper around `sklearn.kmeans` implementation) is used for selection.
+    If set to ``'auto'``, a default of `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD` samples is selected.
+n_background_samples
+    The number of samples to keep in the background dataset if ``summarise_background=True``.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -312,6 +349,9 @@ reset_predictor(predictor: typing.Any) -> None
 Resets the predictor.
 
 Parameters
+----------
+predictor
+    New prediction.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -333,6 +373,32 @@ features according to their importance. The feature importance is the average
 absolute value for a given feature.
 
 Parameters
+----------
+shap_values
+    Each element corresponds to a `samples x features` array of shap values corresponding
+    to each model output.
+feature_names
+    Each element is the name of the column with the corresponding index in each of the
+    arrays in the `shap_values` list.
+
+Returns
+-------
+importances
+    A dictionary of the form::
+
+        {
+            '0': {'ranked_effect': array([0.2, 0.5, ...]), 'names': ['feat_3', 'feat_5', ...]},
+            '1': {'ranked_effect': array([0.3, 0.2, ...]), 'names': ['feat_6', 'feat_1', ...]},
+            ...
+            'aggregated': {'ranked_effect': array([0.9, 0.7, ...]), 'names': ['feat_3', 'feat_6', ...]}
+        }
+
+    The keys of the first level represent the index of the model output. The feature effects in
+    `ranked_effect` and the corresponding feature names in `names` are sorted from highest (most
+    important) to lowest (least important). The values in the `aggregated` field are obtained by
+    summing the shap values for all the model outputs and then computing the effects. Given an
+    output, the effects are defined as the average magnitude of the shap values across the instances
+    to be explained.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -365,6 +431,18 @@ transformation, a single value describing the interaction of categorical feature
 describing the interaction of `j` and `i` is returned.
 
 Parameters
+----------
+values
+    A two or three dimensional array to be reduced, as described above.
+start_idx
+    The start indices of the columns to be summed.
+enc_feat_dim
+    The number of columns to be summed, one for each start index.
+
+Returns
+-------
+new_values
+    An array whose columns have been summed according to the entries in `start_idx` and `enc_feat_dim`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

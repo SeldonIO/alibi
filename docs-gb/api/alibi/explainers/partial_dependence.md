@@ -1,21 +1,4 @@
 # `alibi.explainers.partial_dependence`
-## Constants
-### `DEFAULT_DATA_PD`
-```python
-DEFAULT_DATA_PD: dict = { 'feature_deciles': None,
-  'feature_names': None,
-  'feature_values': None,
-  'ice_values': None,
-  'pd_values': None}
-```
-### `DEFAULT_META_PD`
-```python
-DEFAULT_META_PD: dict = {'explanations': ['global'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.partial_dependence (WARNING)>
-```
 ## `Kind`
 
 _Inherits from:_ `str`, `Enum`
@@ -95,6 +78,54 @@ Calculates the partial dependence for each feature and/or tuples of features wit
 and the reference dataset `X`.
 
 Parameters
+----------
+X
+    A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
+    training dataset or a representative sample.
+features
+    An optional list of features or tuples of features for which to calculate the partial dependence.
+    If not provided, the partial dependence will be computed for every single features in the dataset.
+    Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
+    ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
+kind
+    If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset
+    is returned. If set to ``'individual'``, then only the individual conditional expectation (ICE) is
+    returned for each data point from the dataset. Otherwise, if set to ``'both'``, then both the PD and
+    the ICE are returned.
+percentiles
+    Lower and upper percentiles used to limit the feature values to potentially remove outliers from
+    low-density regions. Note that for features with not many data points with large/low values, the
+    PD estimates are less reliable in those extreme regions. The values must be in [0, 1]. Only used
+    with `grid_resolution`.
+grid_resolution
+    Number of equidistant points to split the range of each target feature. Only applies if the number of
+    unique values of a target feature in the reference dataset `X` is greater than the `grid_resolution` value.
+    For example, consider a case where a feature can take the following values:
+    ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not
+    interested in evaluating the marginal effect at every single point as it can become computationally costly
+    (assume hundreds/thousands of points) without providing any additional information for nearby points
+    (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values
+    ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar
+    insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled
+    using the `percentiles` argument.
+grid_points
+    Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
+    monotonically increasing arrays defining the grid points for a numerical feature, and a subset of
+    categorical feature values for a categorical feature. If the `grid_points` are not specified,
+    then the grid will be constructed based on the unique target feature values available in the
+    dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
+    it applies). For categorical features, the corresponding value in the `grid_points` can be
+    specified either as array of strings or array of integers corresponding the label encodings.
+    Note that the label encoding must match the ordering of the values provided in the `categorical_names`.
+
+Returns
+-------
+explanation
+    An `Explanation` object containing the data and the metadata of the calculated partial dependence
+    curves. See usage at `Partial dependence examples`_ for details
+
+    .. _Partial dependence examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -117,6 +148,9 @@ reset_predictor(predictor: Union[Callable[[.[<class 'numpy.ndarray'>]], numpy.nd
 Resets the predictor function or tree-based `sklearn` estimator.
 
 Parameters
+----------
+predictor
+    New predictor function or tree-based `sklearn` estimator.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -167,6 +201,40 @@ Calculates the partial dependence for each feature and/or tuples of features wit
 and the reference dataset `X`.
 
 Parameters
+----------
+X
+    A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
+    training dataset or a representative sample.
+features
+    An optional list of features or tuples of features for which to calculate the partial dependence.
+    If not provided, the partial dependence will be computed for every single features in the dataset.
+    Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
+    ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
+percentiles
+    Lower and upper percentiles used to limit the feature values to potentially remove outliers from
+    low-density regions. Note that for features with not many data points with large/low values, the
+    PD estimates are less reliable in those extreme regions. The values must be in [0, 1]. Only used
+    with `grid_resolution`.
+grid_resolution
+    Number of equidistant points to split the range of each target feature. Only applies if the number of
+    unique values of a target feature in the reference dataset `X` is greater than the `grid_resolution` value.
+    For example, consider a case where a feature can take the following values:
+    ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not
+    interested in evaluating the marginal effect at every single point as it can become computationally costly
+    (assume hundreds/thousands of points) without providing any additional information for nearby points
+    (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values
+    ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar
+    insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled
+    using the `percentiles` argument.
+grid_points
+    Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
+    monotonically increasing arrays defining the grid points for a numerical feature, and a subset of
+    categorical feature values for a categorical feature. If the `grid_points` are not specified,
+    then the grid will be constructed based on the unique target feature values available in the
+    dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
+    it applies). For categorical features, the corresponding value in the `grid_points` can be
+    specified either as array of strings or array of integers corresponding the label encodings.
+    Note that the label encoding must match the ordering of the values provided in the `categorical_names`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -189,6 +257,84 @@ plot_pd(exp: alibi.api.interfaces.Explanation, features: Union[List[int], Litera
 Plot partial dependence curves on matplotlib axes.
 
 Parameters
+----------
+exp
+    An `Explanation` object produced by a call to the
+    :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+features
+    A list of features entries in the `exp.data['feature_names']` to plot the partial dependence curves for,
+    or ``'all'`` to plot all the explained feature or tuples of features. This includes tuples of features.
+    For example, if ``exp.data['feature_names'] = ['temp', 'hum', ('temp', 'windspeed')]`` and we want to plot
+    the partial dependence only for the ``'temp'`` and ``('temp', 'windspeed')``, then we would set
+    ``features=[0, 2]``. Defaults to ``'all'``.
+target
+    The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers
+    denoting target index or strings denoting entries in `exp.meta['params']['target_names']`.
+n_cols
+    Number of columns to organize the resulting plot into.
+n_ice
+    Number of ICE plots to be displayed. Can be
+
+     - a string taking the value ``'all'`` to display the ICE curves for every instance in the reference dataset.
+
+     - an integer for which `n_ice` instances from the reference dataset will be sampled uniformly at random to          display their ICE curves.
+
+     - a list of integers, where each integer represents an index of an instance in the reference dataset to          display their ICE curves.
+
+center
+    Boolean flag to center the individual conditional expectation (ICE) curves. As mentioned in
+    `Goldstein et al. (2014)`_, the heterogeneity in the model can be difficult to discern when the intercepts
+    of the ICE curves cover a wide range. Centering the ICE curves removes the level effects and helps
+    to visualise the heterogeneous effect.
+
+    .. _Goldstein et al. (2014):
+            https://arxiv.org/abs/1309.6392
+
+pd_limits
+    Minimum and maximum y-limits for all the one-way PD plots. If ``None`` will be automatically inferred.
+levels
+    Number of levels in the contour plot.
+ax
+    A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
+sharey
+    A parameter specifying whether the y-axis of the PD and ICE curves should be on the same scale
+    for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
+pd_num_kw
+    Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the PD for a
+    numerical feature.
+ice_num_kw
+    Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the ICE for a
+    numerical feature.
+pd_cat_kw
+    Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the PD for a
+    categorical feature.
+ice_cat_kw
+    Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the ICE for a
+    categorical feature.
+pd_num_num_kw
+    Keyword arguments passed to the `matplotlib.pyplot.contourf`_ function when plotting the PD for two
+    numerical features.
+pd_num_cat_kw
+    Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the PD for a numerical and a
+    categorical feature.
+pd_cat_cat_kw
+    Keyword arguments passed to the :py:meth:`alibi.utils.visualization.heatmap` functon when plotting the PD for
+    two categorical features.
+fig_kw
+    Keyword arguments passed to the `matplotlib.figure.set`_ function.
+
+    .. _matplotlib.pyplot.plot:
+        https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html
+
+    .. _matplotlib.pyplot.contourf:
+        https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.contourf.html
+
+    .. _matplotlib.figure.set:
+        https://matplotlib.org/stable/api/figure_api.html
+
+Returns
+-------
+An array of `plt.Axes` with the resulting partial dependence plots.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

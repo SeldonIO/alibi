@@ -12,6 +12,17 @@ Computes the influence of training instances `Y` to test instances `X`. This is 
 `Y` should have a leading batch dimension of size at least 1.
 
 Parameters
+----------
+X
+    Matrix of vectors.
+Y
+    Matrix of vectors.
+eps
+    Numerical stability.
+
+Returns
+-------
+    Matrix of asymmetric dot product similarity values between the vector(s) in X and vectors in Y.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -33,6 +44,17 @@ Computes the cosine between the vector(s) in X and vector Y. (:math:`X^T Y/\|X\|
 should have a leading batch dimension of size at least 1.
 
 Parameters
+----------
+X
+    Matrix of vectors.
+Y
+    Matrix of vectors.
+eps
+    Numerical stability.
+
+Returns
+-------
+    Matrix of cosine similarities between the vector(s) in X and vectors in Y.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -54,6 +76,15 @@ Performs a dot product between the vector(s) in X and vector Y. (:math:`X^T Y = 
 `Y` should have a leading batch dimension of size at least 1.
 
 Parameters
+----------
+X
+    Matrix of vectors.
+Y
+    Matrix of vectors.
+
+Returns
+-------
+    Matrix of dot products between the vector(s) in X and vectors in Y.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

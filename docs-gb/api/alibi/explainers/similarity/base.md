@@ -1,17 +1,4 @@
 # `alibi.explainers.similarity.base`
-## Constants
-### `TYPE_CHECKING`
-```python
-TYPE_CHECKING: bool = False
-```
-### `has_pytorch`
-```python
-has_pytorch: bool = True
-```
-### `has_tensorflow`
-```python
-has_tensorflow: bool = True
-```
 ## `BaseSimilarityExplainer`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`
@@ -47,6 +34,16 @@ fit(X_train: Union[numpy.ndarray, List[typing.Any]], Y_train: numpy.ndarray) -> 
 Fit the explainer. If ``self.precompute_grads == True`` then the gradients are precomputed and stored.
 
 Parameters
+----------
+X_train
+    Training data.
+Y_train
+    Training labels.
+
+Returns
+-------
+self
+    Returns self.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -65,6 +62,9 @@ reset_predictor(predictor: Union[tensorflow.keras.Model, torch.nn.Module]) -> No
 Resets the predictor to the given predictor.
 
 Parameters
+----------
+predictor
+    The new predictor to use.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

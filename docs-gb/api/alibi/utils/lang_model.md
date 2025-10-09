@@ -59,6 +59,13 @@ the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to diffe
 this method has to be implemented for each language model. See module docstring for namings.
 
 Parameters
+----------
+token
+    Token to be checked if it is a subword.
+
+Returns
+-------
+``True`` if the given token is a subword prefix. ``False`` otherwise.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -106,6 +113,13 @@ the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to diffe
 this method has to be implemented for each language model. See module docstring for namings.
 
 Parameters
+----------
+token
+    Token to be checked if it is a subword.
+
+Returns
+-------
+``True`` if the given token is a subword prefix. ``False`` otherwise.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -148,6 +162,9 @@ from_disk(path: Union[str, pathlib.Path])
 Loads a model from disk.
 
 Parameters
+----------
+path
+    Path to the checkpoint.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -166,6 +183,13 @@ After the text is split in head and tail, only the head is considered for operat
 Thus the tail will remain unchanged.
 
 Parameters
+----------
+text
+    Text to be split in head and tail.
+
+Returns
+-------
+Tuple consisting of the head, tail and their corresponding list of tokens.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -183,6 +207,15 @@ is_punctuation(token: str, punctuation: str) -> bool
 Checks if the given token is punctuation.
 
 Parameters
+----------
+token
+    Token to be checked if it is punctuation.
+punctuation
+    String containing all punctuation to be considered.
+
+Returns
+-------
+``True`` if the `token` is a punctuation. ``False`` otherwise.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -201,6 +234,19 @@ is_stop_word(tokenized_text: List[str], start_idx: int, punctuation: str, stopwo
 Checks if the given word starting at the given index is in the list of stopwords.
 
 Parameters
+----------
+tokenized_text
+    Tokenized text.
+start_idx
+    Starting index of a word.
+stopwords:
+    List of stop words. The words in this list should be lowercase.
+punctuation
+    Punctuation to be considered. See :py:meth:`alibi.utils.lang_model.LanguageModel.select_entire_word`.
+
+Returns
+-------
+``True`` if the `token` is in the `stopwords` list. ``False`` otherwise.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -229,6 +275,13 @@ the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to diffe
 this method has to be implemented for each language model. See module docstring for namings.
 
 Parameters
+----------
+token
+    Token to be checked if it is a subword.
+
+Returns
+-------
+``True`` if the given token is a subword prefix. ``False`` otherwise.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -246,6 +299,18 @@ predict_batch_lm(x: transformers.tokenization_utils_base.BatchEncoding, vocab_si
 `Tensorflow` language model batch predictions for `AnchorText`.
 
 Parameters
+----------
+x
+    Batch of instances.
+vocab_size
+    Vocabulary size of language model.
+batch_size
+    Batch size used for predictions.
+
+Returns
+-------
+y
+    Array with model predictions.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -270,6 +335,18 @@ presence/absence of `SUBWORD_PREFIX`. See :py:meth:`alibi.utils.lang_model.Langu
 for more details.
 
 Parameters
+----------
+tokenized_text
+    Tokenized text.
+start_idx
+    Starting index of a word.
+punctuation
+    String of punctuation to be considered. If it encounters a token
+    composed only of characters in `punctuation` it terminates the search.
+
+Returns
+-------
+The word obtained by concatenation ``[head_token tail_token_1 tail_token_2 ... tail_token_k]``.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -289,6 +366,9 @@ to_disk(path: Union[str, pathlib.Path])
 Saves a model to disk.
 
 Parameters
+----------
+path
+    Path to the checkpoint.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -333,6 +413,13 @@ the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to diffe
 this method has to be implemented for each language model. See module docstring for namings.
 
 Parameters
+----------
+token
+    Token to be checked if it is a subword.
+
+Returns
+-------
+``True`` if the given token is a subword prefix. ``False`` otherwise.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

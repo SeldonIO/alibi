@@ -3,11 +3,6 @@
 This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base` for the Pytorch backend.
 
-## Constants
-### `TYPE_CHECKING`
-```python
-TYPE_CHECKING: bool = False
-```
 ## `PtCounterfactualRLDataset`
 
 _Inherits from:_ `CounterfactualRLDataset`, `ABC`, `Dataset`, `Generic`
@@ -38,6 +33,27 @@ add_noise(Z_cf: torch.Tensor, noise: NormalActionNoise, act_low: float, act_high
 Add noise to the counterfactual embedding.
 
 Parameters
+----------
+Z_cf
+   Counterfactual embedding.
+noise
+   Noise generator object.
+act_low
+    Action lower bound.
+act_high
+    Action upper bound.
+step
+   Training step.
+exploration_steps
+   Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding
+   is sampled uniformly at random.
+device
+    Device to send data to.
+
+Returns
+-------
+Z_cf_tilde
+   Noised counterfactual embedding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -61,6 +77,15 @@ consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor)
 Default 0 consistency loss.
 
 Parameters
+----------
+Z_cf_pred
+    Counterfactual embedding prediction.
+Z_cf_tgt
+    Counterfactual embedding target.
+
+Returns
+-------
+0 consistency loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -76,6 +101,28 @@ data_generator(X: numpy.ndarray, encoder_preprocessor: Callable, predictor: Call
 Constructs a tensorflow data generator.
 
 Parameters
+----------
+X
+    Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
+    the `preprocessor` function.
+encoder_preprocessor
+    Preprocessor function. This function correspond to the preprocessing steps applied to the
+    encoder/auto-encoder model.
+predictor
+    Prediction function. The classifier function should expect the input in the original format and preprocess
+    it internally in the `predictor` if necessary.
+conditional_func
+    Conditional function generator. Given an preprocessed input array, the functions generates a conditional
+    array.
+batch_size
+    Dimension of the batch used during training. The same batch size is used to infer the classification
+    labels of the input dataset.
+shuffle
+    Whether to shuffle the dataset each epoch. ``True`` by default.
+num_workers
+    Number of worker processes to be created.
+**kwargs
+    Other arguments. Not used.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -96,6 +143,17 @@ decode(Z: torch.Tensor, decoder: torch.nn.modules.module.Module, device: torch.d
 Decodes an embedding tensor.
 
 Parameters
+----------
+Z
+    Embedding tensor to be decoded.
+decoder
+    Pretrained decoder network.
+device
+    Device to sent data to.
+
+Returns
+-------
+Embedding tensor decoding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -112,6 +170,17 @@ encode(X: torch.Tensor, encoder: torch.nn.modules.module.Module, device: torch.d
 Encodes the input tensor.
 
 Parameters
+----------
+X
+    Input to be encoded.
+encoder
+    Pretrained encoder network.
+device
+    Device to send data to.
+
+Returns
+-------
+    Input encoding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -128,6 +197,28 @@ generate_cf(Z: torch.Tensor, Y_m: torch.Tensor, Y_t: torch.Tensor, C: Optional[t
 Generates counterfactual embedding.
 
 Parameters
+----------
+Z
+    Input embedding tensor.
+Y_m
+    Input classification label.
+Y_t
+    Target counterfactual classification label.
+C
+    Conditional tensor.
+encoder
+    Pretrained encoder network.
+decoder
+    Pretrained decoder network.
+actor
+    Actor network. The model generates the counterfactual embedding.
+device
+    Device object to be used.
+
+Returns
+-------
+Z_cf
+    Counterfactual embedding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -152,6 +243,15 @@ get_actor(hidden_dim: int, output_dim: int) -> torch.nn.modules.module.Module
 Constructs the actor network.
 
 Parameters
+----------
+hidden_dim
+    Actor's hidden dimension
+output_dim
+    Actor's output dimension.
+
+Returns
+-------
+Actor network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -170,6 +270,13 @@ get_critic(hidden_dim: int) -> torch.nn.modules.module.Module
 Constructs the critic network.
 
 Parameters
+----------
+hidden_dim:
+    Critic's hidden dimension.
+
+Returns
+-------
+Critic network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -187,6 +294,8 @@ get_device() -> torch.device
 Checks if `cuda` is available. If available, use `cuda` by default, else use `cpu`.
 
 Returns
+-------
+Device to be used.
 
 **Returns**
 - Type: `torch.device`
@@ -200,6 +309,8 @@ get_optimizer(model: torch.nn.modules.module.Module, lr: float = 0.001) -> torch
 Constructs default `Adam` optimizer.
 
 Returns
+-------
+Default optimizer.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -218,6 +329,13 @@ load_model(path: Union[str, os.PathLike]) -> torch.nn.modules.module.Module
 Loads a model and its optimizer.
 
 Parameters
+----------
+path
+    Path to the loading location.
+
+Returns
+-------
+Loaded model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -235,6 +353,11 @@ save_model(path: Union[str, os.PathLike], model: torch.nn.modules.module.Module)
 Saves a model and its optimizer.
 
 Parameters
+----------
+path
+    Path to the saving location.
+model
+    Model to be saved.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -253,6 +376,9 @@ set_seed(seed: int = 13)
 Sets a seed to ensure reproducibility.
 
 Parameters
+----------
+seed
+    Seed to be set.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -267,6 +393,15 @@ sparsity_loss(X_hat_cf: torch.Tensor, X: torch.Tensor) -> Dict[str, torch.Tensor
 Default L1 sparsity loss.
 
 Parameters
+----------
+X_hat_cf
+    Auto-encoder counterfactual reconstruction.
+X
+    Input instance
+
+Returns
+-------
+L1 sparsity loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -285,6 +420,13 @@ to_numpy(X: Union[List[Any], numpy.ndarray, torch.Tensor, None]) -> Union[List[A
 Converts given tensor to `numpy` array.
 
 Parameters
+----------
+X
+    Input tensor to be converted to `numpy` array.
+
+Returns
+-------
+`Numpy` representation of the input tensor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -302,6 +444,8 @@ to_tensor(X: Union[numpy.ndarray, torch.Tensor], device: torch.device, kwargs) -
 Converts tensor to `torch.Tensor`
 
 Returns
+-------
+`torch.Tensor` conversion.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -320,6 +464,51 @@ update_actor_critic(encoder: torch.nn.modules.module.Module, decoder: torch.nn.m
 Training step. Updates actor and critic networks including additional losses.
 
 Parameters
+----------
+encoder
+    Pretrained encoder network.
+decoder
+    Pretrained decoder network.
+critic
+    Critic network.
+actor
+    Actor network.
+optimizer_critic
+    Critic's optimizer.
+optimizer_actor
+    Actor's optimizer.
+sparsity_loss
+    Sparsity loss function.
+consistency_loss
+    Consistency loss function.
+coeff_sparsity
+    Sparsity loss coefficient.
+coeff_consistency
+    Consistency loss coefficient
+X
+    Input array.
+X_cf
+    Counterfactual array.
+Z
+    Input embedding.
+Z_cf_tilde
+    Noised counterfactual embedding.
+Y_m
+    Input classification label.
+Y_t
+    Target counterfactual classification label.
+C
+    Conditional tensor.
+R_tilde
+    Noised counterfactual reward.
+device
+    Torch device object.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+Dictionary of losses.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

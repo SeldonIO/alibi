@@ -1,9 +1,4 @@
 # `alibi.utils.distributed`
-## Constants
-### `logger`
-```python
-logger: Logger = <Logger alibi.utils.distributed (WARNING)>
-```
 ## `ActorPool`
 
 ### Constructor
@@ -30,6 +25,20 @@ This returns the next result produced by :py:meth:`alibi.utils.distributed.Actor
 for up to the specified timeout until it is available.
 
 Returns
+-------
+The next result.
+
+Raises
+------
+TimeoutError
+    If the timeout is reached.
+
+Examples
+---------
+>>> pool = ActorPool(...)
+>>> pool.submit(lambda a, v: a.double.remote(v), 1)
+>>> print(pool.get_next())
+2
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -48,6 +57,22 @@ the specified timeout until it is available. Unlike :py:meth:`alibi.utils.distri
 the results are not always returned in same order as submitted, which can improve performance.
 
 Returns
+-------
+The next result.
+
+Raises
+------
+`TimeoutError` if the timeout is reached.
+
+Examples
+--------
+>>> pool = ActorPool(...)
+>>> pool.submit(lambda a, v: a.double.remote(v), 1)
+>>> pool.submit(lambda a, v: a.double.remote(v), 2)
+>>> print(pool.get_next_unordered())
+4
+>>> print(pool.get_next_unordered())
+2
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -62,6 +87,19 @@ has_next()
 Returns whether there are any pending results to return.
 
 Returns
+-------
+``True`` if there are any pending results not yet returned.
+
+Examples
+--------
+>>> pool = ActorPool(...)
+>>> pool.submit(lambda a, v: a.double.remote(v), 1)
+>>> print(pool.has_next())
+True
+>>> print(pool.get_next())
+2
+>>> print(pool.has_next())
+False
 
 #### `map`
 
@@ -75,6 +113,24 @@ that will return results of the map as they finish. Note that you must iterate o
 the computation to finish.
 
 Parameters
+----------
+fn : Callable
+    Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over
+    the `value`. The `actor` will be considered busy until the `ObjectID` completes.
+values : list
+    List of values that `fn(actor, value)` should be applied to.
+chunksize : int
+    Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less.
+
+Returns
+-------
+Iterator over results from applying `fn` to the `actors` and `values`.
+
+Examples
+--------
+>>> pool = ActorPool(...)
+>>> print(pool.map(lambda a, v: a.double.remote(v), [1, 2, 3, 4]))
+[2, 4, 6, 8]
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -95,6 +151,24 @@ efficient that :py:meth:`alibi.utils.distributed.ActorPool.map` if some results 
 than others.
 
 Parameters
+----------
+fn : Callable
+    Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over
+    the `value`. The `actor` will be considered busy until the `ObjectID` completes.
+values : list
+    List of values that `fn(actor, value)` should be applied to.
+chunksize : int
+    Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less.
+
+Returns
+-------
+Iterator over results from applying `fn` to the `actors` and `values`.
+
+Examples
+--------
+>>> pool = ActorPool(...)
+>>> print(pool.map(lambda a, v: a.double.remote(v), [1, 2, 3, 4]))
+[6, 2, 4, 8]
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -115,6 +189,20 @@ The result can be retrieved using :py:meth:`alibi.utils.distributed.ActorPool.ge
 :py:meth:`alibi.utils.distributed.ActorPool.get_next_unordered()`.
 
 Parameters
+----------
+fn
+    Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over
+    the `value`. The `actor` will be considered busy until the `ObjectID` completes.
+value
+    Value to compute a result for.
+
+Examples
+--------
+>>> pool = ActorPool(...)
+>>> pool.submit(lambda a, v: a.double.remote(v), 1)
+>>> pool.submit(lambda a, v: a.double.remote(v), 2)
+>>> print(pool.get_next(), pool.get_next())
+2, 4
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -157,6 +245,8 @@ create_parallel_pool(explainer_type: typing.Any, explainer_init_args: Tuple, exp
 Creates a pool of actors that can explain the rows of a dataset in parallel.
 
 Parameters
+----------
+See constructor documentation.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -173,6 +263,21 @@ get_explanation(X: numpy.ndarray, kwargs) -> Union[Generator[Tuple[int, typing.A
 Performs distributed explanations of instances in `X`.
 
 Parameters
+----------
+X
+    A batch of instances to be explained. Split into batches according to the settings passed to the constructor.
+**kwargs
+    Any keyword-arguments for the explainer `explain` method. 
+
+Returns
+--------
+The explanations are returned as
+
+ - a generator, if the `return_generator` option is specified. This is used so that the caller can access         the results as they are computed. This is the only case when this method is non-blocking and the caller         needs to call `next` on the generator to trigger the parallel computation.
+
+ - a list of objects, whose type depends on the return type of the explainer. This is returned  if no         custom preprocessing function is specified.
+
+ - an object, whose type depends on the return type of the concatenation function return when called with         a list of minibatch results with the same order as the minibatches.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -250,6 +355,9 @@ Creates multiple actors for `DistributedExplainer` so that tasks can be executed
 initialised with different arguments, so they represent different explainers.
 
 Parameters
+----------
+distributed_opts, explainer_type, explainer_init_args, explainer_init_kwargs, **kwargs
+    See :py:meth:`alibi.utils.distributed.PoolCollection`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -269,6 +377,23 @@ Calls a collection of distributed explainers in parallel. Each distributed expla
 `X` in parallel.
 
 Parameters
+----------
+X
+    Batch of instances to be explained.
+
+Returns
+-------
+A list of responses collected from each explainer.
+
+Notes
+-----
+Note that the call to `ray.get` is blocking.
+
+Raises
+------
+TypeError
+    If the user sets ``return_generator=True`` for the DistributedExplainer. This is because generators
+    cannot be pickled so one cannot call `ray.get`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -291,6 +416,22 @@ batch(X: numpy.ndarray, batch_size: Optional[int] = None, n_batches: int = 4) ->
 Splits the input into sub-arrays.
 
 Parameters
+----------
+X
+    Array to be split.
+batch_size
+    The size of each batch. In particular
+
+     - if `batch_size` is not ``None``, batches of this size are created. The sizes of the batches created might         vary if the 0-th dimension of `X` is not divisible by `batch_size`. For an array of length `l` that should         be split into `n` sections, it returns `l % n` sub-arrays of size `l//n + 1` and the rest of  `size l//n`
+    
+     - if `batch_size` is ``None``, then `X` is split into `n_batches` sub-arrays.
+        
+n_batches
+    Number of batches in which to split the sub-array. Only used if ``batch_size = None``
+
+Returns
+------
+A list of sub-arrays of `X`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -313,6 +454,14 @@ sequential version. If the type returned by the explainer is not supported by th
 by adding an appropriately named private function and use this function to check the input type and call it.
 
 Parameters
+----------
+minibatch_results
+    Explanations for each minibatch.
+    
+Returns
+-------
+If the input is ``List[np.ndarray]``, a single `numpy` array obtained by concatenating `minibatch` results along     the 0th axis. 
+If the input is ``List[List[np.ndarray]]`` A list of `numpy` arrays obtained by concatenating arrays in with the     same position in the sublists along the 0th axis.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -332,6 +481,25 @@ A target function that is executed in parallel given an actor pool. Its argument
 values to be processed by the actor. Its role is to execute distributed computations when an actor is available.
 
 Parameters
+----------
+actor
+    A `ray` actor. This is typically a class decorated with the `@ray.remote decorator`, that has been subsequently
+    instantiated using ``cls.remote(*args, **kwargs)``.
+instances
+    A `(batch_index, batch)` tuple containing the batch of instances to be explained along with a batch index.
+kwargs
+    A list of keyword arguments for the actor `get_explanation` method.
+
+Returns
+-------
+A future that can be used to later retrieve the results of a distributed computation.
+
+Notes
+-----
+This function can be customized (e.g., if one does not desire to wrap the explainer such that it has
+`get_explanation` method. The customized function should be called `*_target_fcn` with the wildcard being replaced
+by the name of the explanation method (e.g., `cem`, `cfproto`, etc). The same name should be added to the
+`distributed_opts` dictionary passed by the user prior to instantiating the `DistributedExplainer`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -348,6 +516,14 @@ invert_permutation(p: list) -> numpy.ndarray
 Inverts a permutation.
 
 Parameters
+-----------
+p
+    Some permutation of `0, 1, ..., len(p)-1`. Returns an array `s`, where `s[i]` gives the index of `i` in `p`.
+
+Returns
+-------
+s
+    `s[i]` gives the index of `i` in `p`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -367,6 +543,17 @@ Re-orders the result of a distributed explainer so that the explanations follow 
 the explainer.
 
 Parameters
+----------
+unordered_result
+    Each tuple contains the batch id as the first entry and the explanations for that batch as the second.
+
+Returns
+-------
+A list with re-ordered results.
+
+Notes
+-----
+This should not be used if one wants to take advantage of the results being returned as they are calculated.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

@@ -35,6 +35,13 @@ forward(x: torch.Tensor) -> torch.Tensor
 Forward pass
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+Continuous action.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -73,6 +80,13 @@ forward(x: torch.Tensor) -> torch.Tensor
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+Critic value.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

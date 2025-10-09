@@ -1,34 +1,4 @@
 # `alibi.explainers.permutation_importance`
-## Constants
-### `DEFAULT_DATA_PERMUTATION_IMPORTANCE`
-```python
-DEFAULT_DATA_PERMUTATION_IMPORTANCE: dict = {'feature_importance': None, 'feature_names': None, 'metric_names': None}
-```
-### `DEFAULT_META_PERMUTATION_IMPORTANCE`
-```python
-DEFAULT_META_PERMUTATION_IMPORTANCE: dict = {'explanations': ['global'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.permutation_importance (WARNING)>
-```
-### `LOSS_FNS`
-```python
-LOSS_FNS: dict = { 'log_loss': <function log_loss at 0x16dec7b80>,
-  'mean_absolute_error': <function mean_absolute_error at 0x16dfcfca0>,
-  'mean_absolute_percentage_error': <function mean_absolute_percentage_error at 0x16dfcfee0>,
-  'mean_squared_error': <function mean_squared_error at 0x16dfda040>,
-  'mean_squared_log_error': <function mean_squared_log_error at 0x16dfda280>}
-```
-### `SCORE_FNS`
-```python
-SCORE_FNS: dict = { 'accuracy': <function accuracy_score at 0x16debc790>,
-  'f1': <function f1_score at 0x16debcf70>,
-  'precision': <function precision_score at 0x16dec75e0>,
-  'r2': <function r2_score at 0x16dfda790>,
-  'recall': <function recall_score at 0x16dec7700>,
-  'roc_auc': <function roc_auc_score at 0x16dfb9ee0>}
-```
 ## `Kind`
 
 _Inherits from:_ `str`, `Enum`
@@ -83,6 +53,43 @@ Computes the permutation feature importance for each feature with respect to the
 functions and the dataset `(X, y)`.
 
 Parameters
+----------
+X
+    A `N x F` input feature dataset used to calculate the permutation feature importance. This is typically the
+    test dataset.
+y
+    Ground-truth labels array  of size `N` (i.e. `(N, )`) corresponding the input feature `X`.
+features
+    An optional list of features or tuples of features for which to compute the permutation feature
+    importance. If not provided, the permutation feature importance will be computed for every single features
+    in the dataset. Some example of `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``,
+    where ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
+method
+    The method to be used to compute the feature importance. If set to ``'exact'``, a "switch" operation is
+    performed across all observed pairs, by excluding pairings that are actually observed in the original
+    dataset. This operation is quadratic in the number of samples (`N x (N - 1)` samples) and thus can be
+    computationally intensive. If set to ``'estimate'``, the dataset will be divided in half. The values of
+    the first half containing the ground-truth labels the rest of the features (i.e. features that are left
+    intact) is matched with the values of the second half of the permuted features, and the other way around.
+    This method is computationally lighter and provides estimate error bars given by the standard deviation.
+    Note that for some specific loss and score functions, the estimate does not converge to the exact metric
+    value.
+kind
+    Whether to report the importance as the loss/score ratio or the loss/score difference.
+    Available values are: ``'ratio'`` | ``'difference'``.
+n_repeats
+    Number of times to permute the feature values. Considered only when ``method='estimate'``.
+sample_weight
+    Optional weight for each sample instance.
+
+Returns
+-------
+explanation
+    An `Explanation` object containing the data and the metadata of the permutation feature importance.
+    See usage at `Permutation feature importance examples`_ for details
+
+    .. _Permutation feature importance examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -106,6 +113,9 @@ reset_predictor(predictor: Callable) -> None
 Resets the predictor function.
 
 Parameters
+----------
+predictor
+    New predictor function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -124,6 +134,46 @@ plot_permutation_importance(exp: alibi.api.interfaces.Explanation, features: Uni
 Plot permutation feature importance on `matplotlib` axes.
 
 Parameters
+----------
+exp
+    An `Explanation` object produced by a call to the
+    :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain` method.
+features
+    A list of feature entries provided in `feature_names` argument  to the
+    :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain` method, or
+    ``'all'`` to  plot all the explained features. For example, consider that the
+    ``feature_names = ['temp', 'hum', 'windspeed', 'season']``. If we set `features=None` in the `explain` method,
+    meaning that all the feature were explained, and we want to plot only the values  for the ``'temp'`` and
+    ``'windspeed'``, then we would set ``features=[0, 2]``. Otherwise, if we set `features=[1, 2, 3]` in the
+    explain method, meaning that we explained ``['hum', 'windspeed', 'season']``, and we want to plot the values
+    only for ``['windspeed', 'season']``, then we would set ``features=[1, 2]`` (i.e., their index in the
+    `features` list passed to the `explain` method). Defaults to ``'all'``.
+metric_names
+    A list of metric entries in the `exp.data['metrics']` to plot the permutation feature importance for,
+    or ``'all'`` to plot the permutation feature importance for all metrics (i.e., loss and score functions).
+    The ordering is given by the concatenation of the loss metrics followed by the score metrics.
+n_cols
+    Number of columns to organize the resulting plot into.
+sort
+    Boolean flag whether to sort the values in descending order.
+top_k
+    Number of top k values to be displayed if the ``sort=True``. If not provided, then all values will be displayed.
+ax
+    A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
+bar_kw
+    Keyword arguments passed to the `matplotlib.pyplot.barh`_ function.
+fig_kw
+    Keyword arguments passed to the `matplotlib.figure.set`_ function.
+
+    .. _matplotlib.pyplot.barh:
+        https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html
+
+    .. _matplotlib.figure.set:
+        https://matplotlib.org/stable/api/figure_api.html
+
+Returns
+--------
+`plt.Axes` with the feature importance plot.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

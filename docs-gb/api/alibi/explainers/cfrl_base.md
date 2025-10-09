@@ -1,60 +1,4 @@
 # `alibi.explainers.cfrl_base`
-## Constants
-### `TYPE_CHECKING`
-```python
-TYPE_CHECKING: bool = False
-```
-### `DEFAULT_DATA_CFRL`
-```python
-DEFAULT_DATA_CFRL: dict = {'cf': None, 'condition': None, 'orig': None, 'target': None}
-```
-### `DEFAULT_META_CFRL`
-```python
-DEFAULT_META_CFRL: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
-```
-### `has_pytorch`
-```python
-has_pytorch: bool = True
-```
-### `has_tensorflow`
-```python
-has_tensorflow: bool = True
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.cfrl_base (WARNING)>
-```
-define logger
-
-### `DEFAULT_BASE_PARAMS`
-```python
-DEFAULT_BASE_PARAMS: dict = { 'act_high': 1.0,
-  'act_low': -1.0,
-  'act_noise': 0.1,
-  'actor': None,
-  'actor_hidden_dim': 256,
-  'backend': 'tensorflow',
-  'batch_size': 100,
-  'callbacks': [],
-  'conditional_func': <function generate_empty_condition at 0x2a93aa8b0>,
-  'critic': None,
-  'critic_hidden_dim': 256,
-  'decoder_inv_preprocessor': <function identity_function at 0x2a93aa820>,
-  'encoder_preprocessor': <function identity_function at 0x2a93aa820>,
-  'exploration_steps': 100,
-  'lr_actor': 0.001,
-  'lr_critic': 0.001,
-  'num_workers': 4,
-  'optimizer_actor': None,
-  'optimizer_critic': None,
-  'postprocessing_funcs': [],
-  'replay_buffer_size': 1000,
-  'reward_func': <function get_classification_reward at 0x2a93aa940>,
-  'shuffle': True,
-  'train_steps': 100000,
-  'update_after': 10,
-  'update_every': 1}
-```
 ## `Callback`
 
 _Inherits from:_ `ABC`
@@ -95,6 +39,24 @@ explain(X: numpy.ndarray, Y_t: numpy.ndarray, C: Optional[numpy.ndarray] = None,
 Explains an input instance
 
 Parameters
+----------
+X
+    Instances to be explained.
+Y_t
+    Counterfactual targets.
+C
+    Conditional vectors. If ``None``, it means that no conditioning was used during training (i.e. the
+    `conditional_func` returns ``None``).
+batch_size
+    Batch size to be used when generating counterfactuals.
+
+Returns
+-------
+explanation
+    `Explanation` object containing the counterfactual with additional metadata as attributes.             See usage at `CFRL examples`_ for details.
+
+    .. _CFRL examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -115,6 +77,14 @@ fit(X: numpy.ndarray) -> alibi.api.interfaces.Explainer
 Fit the model agnostic counterfactual generator.
 
 Parameters
+----------
+X
+    Training data array.
+
+Returns
+-------
+self
+    The explainer itself.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -213,6 +183,23 @@ Adds experience to the replay buffer. When the buffer is filled, then the oldest
 by the new one (FIFO).
 
 Parameters
+----------
+X
+    Input array.
+Y_m
+    Model's prediction class of `X`.
+Y_t
+    Counterfactual target class.
+Z
+    Input's embedding.
+Z_cf_tilde
+    Noised counterfactual embedding.
+C
+    Conditional array.
+R_tilde
+    Noised counterfactual reward array.
+**kwargs
+    Other arguments. Not used.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -236,6 +223,8 @@ sample() -> Dict[str, Optional[numpy.ndarray]]
 Sample a batch of experience form the replay buffer.
 
 Returns
+-------
+A batch experience. For a description of the keys and values returned, see parameter descriptions         in :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append` method. The batch size returned is the same         as the one passed in the :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append`.
 
 **Returns**
 - Type: `Dict[str, Optional[numpy.ndarray]]`

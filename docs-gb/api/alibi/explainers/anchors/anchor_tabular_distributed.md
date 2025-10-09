@@ -24,6 +24,13 @@ draw_samples(anchors: list, batch_size: int) -> Tuple[numpy.ndarray, numpy.ndarr
 Distributes sampling requests among processes running sampling tasks.
 
 Parameters
+----------
+anchors, batch_size
+    See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.draw_samples` implementation.
+
+Returns
+-------
+See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.draw_samples` implementation.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -65,6 +72,13 @@ Explains the prediction made by a classifier on instance `X`. Sampling is done i
 cores specified in `kwargs['ncpu']`.
 
 Parameters
+----------
+X, threshold, delta, tau, batch_size, coverage_samples, beam_size, stop_on_first, max_anchor_size,         min_samples_start, n_covered_ex, binary_cache_size, cache_margin, verbose, verbose_every, **kwargs
+    See :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.explain`.
+
+Returns
+-------
+See :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.explain` superclass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -98,6 +112,9 @@ Creates a list of handles to parallel processes handles that are used for submit
 tasks.
 
 Parameters
+----------
+train_data, disc_perc, **kwargs
+    See :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.fit` superclass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -116,6 +133,9 @@ reset_predictor(predictor: Callable) -> None
 Resets the predictor function.
 
 Parameters
+----------
+predictor
+    New model prediction function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -144,6 +164,13 @@ build_lookups(X: numpy.ndarray)
 Wrapper around :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.build_lookups`.
 
 Parameters
+--------
+X
+    See :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.build_lookups`.
+
+Returns
+-------
+See :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.build_lookups`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -158,6 +185,14 @@ set_instance_label(X: numpy.ndarray) -> int
 Sets the remote sampler instance label.
 
 Parameters
+----------
+X
+    The instance to be explained.
+
+Returns
+-------
+label
+    The label of the instance to be explained.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -175,6 +210,9 @@ set_n_covered(n_covered: int) -> None
 Sets the remote sampler number of examples to save for inspection.
 
 Parameters
+----------
+n_covered
+    Number of examples where the result (and partial anchors) apply.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

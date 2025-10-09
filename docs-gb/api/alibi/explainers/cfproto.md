@@ -1,21 +1,4 @@
 # `alibi.explainers.cfproto`
-## Constants
-### `DEFAULT_DATA_CFP`
-```python
-DEFAULT_DATA_CFP: dict = {'all': [], 'cf': None, 'id_proto': None, 'orig_class': None, 'orig_proba': None}
-```
-### `DEFAULT_META_CFP`
-```python
-DEFAULT_META_CFP: dict = { 'explanations': ['local'],
-  'name': None,
-  'params': {},
-  'type': ['blackbox', 'tensorflow', 'keras'],
-  'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.cfproto (WARNING)>
-```
 ## `CounterfactualProto`
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`
@@ -61,6 +44,36 @@ attack(X: numpy.ndarray, Y: numpy.ndarray, target_class: Optional[list] = None, 
 Find a counterfactual (CF) for instance `X` using a fast iterative shrinkage-thresholding algorithm (FISTA).
 
 Parameters
+----------
+X
+    Instance to attack.
+Y
+    Labels for `X` as one-hot-encoding.
+target_class
+    List with target classes used to find closest prototype. If ``None``, the nearest prototype
+    except for the predict class on the instance is used.
+k
+    Number of nearest instances used to define the prototype for a class. Defaults to using all
+    instances belonging to the class if an encoder is used and to 1 for k-d trees.
+k_type
+    Use either the average encoding of the k nearest instances in a class (``k_type='mean'``) or
+    the k-nearest encoding in the class (``k_type='point'``) to define the prototype of that class.
+    Only relevant if an encoder is used to define the prototypes.
+threshold
+    Threshold level for the ratio between the distance of the counterfactual to the prototype of the
+    predicted class for the original instance over the distance to the prototype of the predicted class
+    for the counterfactual. If the trust score is below the threshold, the proposed counterfactual does
+    not meet the requirements.
+verbose
+    Print intermediate results of optimization if ``True``.
+print_every
+    Print frequency if verbose is ``True``.
+log_every
+    `tensorboard` log frequency if write directory is specified.
+
+Returns
+-------
+Overall best attack and gradients for that attack.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -86,6 +99,41 @@ explain(X: numpy.ndarray, Y: Optional[numpy.ndarray] = None, target_class: Optio
 Explain instance and return counterfactual with metadata.
 
 Parameters
+----------
+X
+    Instances to attack.
+Y
+    Labels for `X` as one-hot-encoding.
+target_class
+    List with target classes used to find closest prototype. If ``None``, the nearest prototype
+    except for the predict class on the instance is used.
+k
+    Number of nearest instances used to define the prototype for a class. Defaults to using all
+    instances belonging to the class if an encoder is used and to 1 for k-d trees.
+k_type
+    Use either the average encoding of the `k` nearest instances in a class (``k_type='mean'``) or
+    the k-nearest encoding in the class (``k_type='point'``) to define the prototype of that class.
+    Only relevant if an encoder is used to define the prototypes.
+threshold
+    Threshold level for the ratio between the distance of the counterfactual to the prototype of the
+    predicted class for the original instance over the distance to the prototype of the predicted class
+    for the counterfactual. If the trust score is below the threshold, the proposed counterfactual does
+    not meet the requirements.
+verbose
+    Print intermediate results of optimization if ``True``.
+print_every
+    Print frequency if verbose is ``True``.
+log_every
+    `tensorboard` log frequency if write directory is specified
+
+Returns
+-------
+explanation
+    `Explanation` object containing the counterfactual with additional metadata as attributes.
+    See usage at `CFProto examples`_ for details.
+
+    .. _CFProto examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -113,6 +161,31 @@ Get prototypes for each class using the encoder or k-d trees.
 The prototypes are used for the encoder loss term or to calculate the optional trust scores.
 
 Parameters
+----------
+train_data
+    Representative sample from the training data.
+trustscore_kwargs
+    Optional arguments to initialize the trust scores method.
+d_type
+    Pairwise distance metric used for categorical variables. Currently, ``'abdm'``, ``'mvdm'`` and
+    ``'abdm-mvdm'`` are supported. ``'abdm'`` infers context from the other variables while ``'mvdm'`` uses
+    the model predictions. ``'abdm-mvdm'`` is a weighted combination of the two metrics.
+w
+    Weight on ``'abdm'`` (between 0. and 1.) distance if `d_type` equals ``'abdm-mvdm'``.
+disc_perc
+    List with percentiles used in binning of numerical features used for the ``'abdm'``
+    and ``'abdm-mvdm'`` pairwise distance measures.
+standardize_cat_vars
+    Standardize numerical values of categorical variables if ``True``.
+smooth
+    Smoothing exponent between 0 and 1 for the distances. Lower values will smooth the difference in
+    distance metric between different features.
+center
+    Whether to center the scaled distance measures. If ``False``, the min distance for each feature
+    except for the feature with the highest raw max distance will be the lower bound of the
+    feature range, but the upper bound will be below the max feature range.
+update_feature_range
+    Update feature range with scaled values.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -140,6 +213,20 @@ Compute numerical gradients of the attack loss term:
 `dL/dx = (dL/dP)*(dP/dx)` with `L = loss_attack_s; P = predict; x = adv_s`.
 
 Parameters
+----------
+X
+    Instance around which gradient is evaluated.
+Y
+    One-hot representation of instance labels.
+grads_shape
+    Shape of gradients.
+cat_vars_ord
+    Dict with as keys the categorical columns and as values
+    the number of categories per categorical variable.
+
+Returns
+-------
+Array with gradients.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -160,6 +247,15 @@ loss_fn(pred_proba: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
 Compute the attack loss.
 
 Parameters
+----------
+pred_proba
+    Prediction probabilities of an instance.
+Y
+    One-hot representation of instance labels.
+
+Returns
+-------
+Loss of the attack.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -178,6 +274,9 @@ reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> Non
 Resets the predictor function/model.
 
 Parameters
+----------
+predictor
+    New predictor function/model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -193,6 +292,20 @@ score(X: numpy.ndarray, adv_class: int, orig_class: int, eps: float = 1e-10) -> 
 ```
 
 Parameters
+
+----------
+X
+    Instance to encode and calculate distance metrics for.
+adv_class
+    Predicted class on the perturbed instance.
+orig_class
+    Predicted class on the original instance.
+eps
+    Small number to avoid dividing by 0.
+
+Returns
+-------
+Ratio between the distance to the prototype of the predicted class for the original instance and         the prototype of the predicted class for the perturbed instance.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

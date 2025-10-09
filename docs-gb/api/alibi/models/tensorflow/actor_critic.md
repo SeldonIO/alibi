@@ -35,6 +35,15 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+Continuous action.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -93,6 +102,13 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+Critic value.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

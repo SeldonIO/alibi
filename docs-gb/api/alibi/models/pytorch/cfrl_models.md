@@ -34,6 +34,13 @@ forward(x: torch.Tensor) -> List[torch.Tensor]
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the         numerical features if they exist, and the rest of the elements correspond to each categorical feature.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -74,6 +81,13 @@ forward(x: torch.Tensor) -> torch.Tensor
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+Encoding representation having each component in the interval [-1, 1]
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -113,6 +127,13 @@ forward(x: torch.Tensor) -> torch.Tensor
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+Classification logits.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -153,6 +174,13 @@ forward(x: torch.Tensor) -> torch.Tensor
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+Decoded input having each component in the interval [0, 1].
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -194,6 +222,13 @@ forward(x: torch.Tensor) -> torch.Tensor
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+Encoding representation having each component in the interval [-1, 1]
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

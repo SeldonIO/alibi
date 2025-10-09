@@ -1,13 +1,4 @@
 # `alibi.explainers.anchors.text_samplers`
-## Constants
-### `TYPE_CHECKING`
-```python
-TYPE_CHECKING: bool = False
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.anchors.text_samplers (WARNING)>
-```
 ## `AnchorTextSampler`
 
 ### Constructor
@@ -55,6 +46,17 @@ neighbors(word: str, tag: str, top_n: int) -> dict
 Find similar words for a certain word in the vocabulary.
 
 Parameters
+----------
+word
+    Word for which we need to find similar words.
+tag
+    Part of speech tag for the words.
+top_n
+    Return only `top_n` neighbors.
+
+Returns
+-------
+A dict with two fields. The ``'words'`` field contains a `numpy` array of the `top_n` most similar words,         whereas the fields ``'similarities'`` is a `numpy` array with corresponding word similarities.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -100,12 +102,40 @@ and a `numpy` array of word similarities (``'similarities'``).
 #### `perturb_sentence_similarity`
 
 ```python
-perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'DET', 'ADP', 'VERB', 'NOUN', 'ADV', 'ADJ'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
+perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'ADP', 'DET', 'VERB', 'ADV', 'ADJ', 'NOUN'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
 Perturb the text instance to be explained.
 
 Parameters
+----------
+present
+    Word index in the text for the words in the proposed anchor.
+n
+    Number of samples used when sampling from the corpus.
+sample_proba
+    Sample probability for a word if `use_proba=False`.
+forbidden
+    Forbidden lemmas.
+forbidden_tags
+    Forbidden POS tags.
+forbidden_words
+    Forbidden words.
+pos
+    POS that can be changed during perturbation.
+use_proba
+    Bool whether to sample according to a similarity score with the corpus embeddings.
+temperature
+    Sample weight hyper-parameter if ``use_proba=True``.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+raw
+    Array of perturbed text instances.
+data
+    Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -116,7 +146,7 @@ Parameters
 | `forbidden_tags` | `frozenset` | `frozenset({'PRP$'})` |  |
 | `forbidden_words` | `frozenset` | `frozenset({'be'})` |  |
 | `temperature` | `float` | `1.0` |  |
-| `pos` | `frozenset` | `frozenset({'DET', 'ADP', 'VERB', 'NOUN', 'ADV', 'ADJ'})` |  |
+| `pos` | `frozenset` | `frozenset({'ADP', 'DET', 'VERB', 'ADV', 'ADJ', 'NOUN'})` |  |
 | `use_proba` | `bool` | `False` |  |
 
 **Returns**
@@ -147,6 +177,9 @@ set_text(text: str) -> None
 Sets the text to be processed
 
 Parameters
+----------
+text
+    Text to be processed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -197,6 +230,9 @@ set_text(text: str) -> None
 Sets the text to be processed.
 
 Parameters
+----------
+text
+    Text to be processed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

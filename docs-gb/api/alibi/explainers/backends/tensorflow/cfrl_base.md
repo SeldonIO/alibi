@@ -3,11 +3,6 @@
 This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base`, for the Tensorflow backend.
 
-## Constants
-### `TYPE_CHECKING`
-```python
-TYPE_CHECKING: bool = False
-```
 ## `TfCounterfactualRLDataset`
 
 _Inherits from:_ `CounterfactualRLDataset`, `ABC`, `PyDataset`
@@ -52,6 +47,27 @@ add_noise(Z_cf: Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray],
 Add noise to the counterfactual embedding.
 
 Parameters
+----------
+Z_cf
+    Counterfactual embedding.
+noise
+    Noise generator object.
+act_low
+    Noise lower bound.
+act_high
+    Noise upper bound.
+step
+    Training step.
+exploration_steps
+    Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding
+    is sampled uniformly at random.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+Z_cf_tilde
+    Noised counterfactual embedding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -74,6 +90,15 @@ consistency_loss(Z_cf_pred: tensorflow.python.framework.tensor.Tensor, Z_cf_tgt:
 Default 0 consistency loss.
 
 Parameters
+----------
+Z_cf_pred
+    Counterfactual embedding prediction.
+Z_cf_tgt
+    Counterfactual embedding target.
+
+Returns
+-------
+0 consistency loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -89,6 +114,26 @@ data_generator(X: numpy.ndarray, encoder_preprocessor: Callable, predictor: Call
 Constructs a `tensorflow` data generator.
 
 Parameters
+----------
+X
+    Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
+    the `preprocessor` function.
+encoder_preprocessor
+    Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/auto-encoder
+    model.
+predictor
+    Prediction function. The classifier function should expect the input in the original format and preprocess
+    it internally in the `predictor` if necessary.
+conditional_func
+    Conditional function generator. Given an preprocessed input array, the functions generates a conditional
+    array.
+batch_size
+    Dimension of the batch used during training. The same batch size is used to infer the classification
+    labels of the input dataset.
+shuffle
+    Whether to shuffle the dataset each epoch. ``True`` by default.
+**kwargs
+    Other arguments. Not used.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -108,6 +153,17 @@ decode(Z: Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray], decod
 Decodes an embedding tensor.
 
 Parameters
+----------
+Z
+    Embedding tensor to be decoded.
+decoder
+    Pretrained decoder network.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+Embedding tensor decoding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -123,6 +179,17 @@ encode(X: Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray], encod
 Encodes the input tensor.
 
 Parameters
+----------
+X
+    Input to be encoded.
+encoder
+    Pretrained encoder network.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+Input encoding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -141,6 +208,24 @@ generate_cf(Z: Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor], 
 Generates counterfactual embedding.
 
 Parameters
+----------
+Z
+    Input embedding tensor.
+Y_m
+    Input classification label.
+Y_t
+    Target counterfactual classification label.
+C
+    Conditional tensor.
+actor
+    Actor network. The model generates the counterfactual embedding.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+Z_cf
+    Counterfactual embedding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -162,6 +247,15 @@ get_actor(hidden_dim: int, output_dim: int) -> keras.src.layers.layer.Layer
 Constructs the actor network.
 
 Parameters
+----------
+hidden_dim
+    Actor's hidden dimension
+output_dim
+    Actor's output dimension.
+
+Returns
+-------
+Actor network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -180,6 +274,13 @@ get_critic(hidden_dim: int) -> keras.src.layers.layer.Layer
 Constructs the critic network.
 
 Parameters
+----------
+hidden_dim:
+    Critic's hidden dimension.
+
+Returns
+-------
+Critic network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -197,6 +298,15 @@ get_optimizer(model: Optional[keras.src.layers.layer.Layer] = None, lr: float = 
 Constructs default `Adam` optimizer.
 
 Parameters
+----------
+model
+    Model to get the optimizer for. Not required for `tensorflow` backend.
+lr
+    Learning rate.
+
+Returns
+-------
+Default optimizer.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -215,6 +325,23 @@ initialize_actor_critic(actor, critic, Z, Z_cf_tilde, Y_m, Y_t, C, kwargs)
 Initialize actor and critic layers by passing a dummy zero tensor.
 
 Parameters
+----------
+actor
+    Actor model.
+critic
+    Critic model.
+Z
+    Input embedding.
+Z_cf_tilde
+    Noised counterfactual embedding.
+Y_m
+    Input classification label.
+Y_t
+    Target counterfactual classification label.
+C
+    Conditional tensor.
+**kwargs
+    Other arguments. Not used.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -235,6 +362,11 @@ initialize_optimizer(optimizer: keras.src.optimizers.optimizer.Optimizer, model:
 Initializes an optimizer given a model.
 
 Parameters
+----------
+optimizer
+    Optimizer to be initialized.
+model
+    Model to be optimized
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -253,6 +385,17 @@ initialize_optimizers(optimizer_actor, optimizer_critic, actor, critic, kwargs) 
 Initializes the actor and critic optimizers.
 
 Parameters
+----------
+optimizer_actor
+    Actor optimizer to be initialized.
+optimizer_critic
+    Critic optimizer to be initialized.
+actor
+    Actor model to be optimized.
+critic
+    Critic model to be optimized.
+**kwargs
+    Other arguments. Not used.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -273,6 +416,13 @@ load_model(path: Union[str, os.PathLike]) -> keras.src.models.model.Model
 Loads a model and its optimizer.
 
 Parameters
+----------
+path
+    Path to the loading location.
+
+Returns
+-------
+Loaded model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -290,6 +440,11 @@ save_model(path: Union[str, os.PathLike], model: keras.src.layers.layer.Layer) -
 Saves a model and its optimizer.
 
 Parameters
+----------
+path
+    Path to the saving location.
+model
+    Model to be saved.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -308,6 +463,9 @@ set_seed(seed: int = 13)
 Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
 
 Parameters
+----------
+seed
+    seed to be set
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -322,6 +480,15 @@ sparsity_loss(X_hat_cf: tensorflow.python.framework.tensor.Tensor, X: tensorflow
 Default L1 sparsity loss.
 
 Parameters
+----------
+X_hat_cf
+    Auto-encoder counterfactual reconstruction.
+X
+    Input instance.
+
+Returns
+-------
+L1 sparsity loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -340,6 +507,13 @@ to_numpy(X: Union[List[Any], numpy.ndarray, tensorflow.python.framework.tensor.T
 Converts given tensor to `numpy` array.
 
 Parameters
+----------
+X
+    Input tensor to be converted to `numpy` array.
+
+Returns
+-------
+`Numpy` representation of the input tensor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -357,6 +531,15 @@ to_tensor(X: Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor], kw
 Converts tensor to `tf.Tensor`.
 
 Parameters
+----------
+X
+    Input array/tensor to be converted.
+**kwargs
+    Other arguments. Not used.
+
+Returns
+-------
+`tf.Tensor` conversion.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

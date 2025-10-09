@@ -33,6 +33,11 @@ compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.T
 Computes accuracy metric given the predicted label and the true label.
 
 Parameters
+----------
+y_pred
+    Predicted label.
+y_true
+    True label.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -76,6 +81,8 @@ result() -> Dict[str, float]
 Computes the average loss obtain by dividing the cumulated loss by the number of steps
 
 Returns
+-------
+Average loss.
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -127,6 +134,8 @@ result() -> Dict[str, float]
 Computes the result according to the reduction procedure.
 
 Returns
+-------
+Monitoring metric.
 
 **Returns**
 - Type: `Dict[str, float]`

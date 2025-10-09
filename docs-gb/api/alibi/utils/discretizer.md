@@ -24,6 +24,14 @@ bins(data: numpy.ndarray) -> List[numpy.ndarray]
 
 Parameters
 
+----------
+data
+    Data to discretize.
+
+Returns
+-------
+List with bin values for each feature that is discretized.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `data` | `numpy.ndarray` |  |  |
@@ -38,6 +46,14 @@ discretize(data: numpy.ndarray) -> numpy.ndarray
 ```
 
 Parameters
+
+----------
+data
+    Data to discretize.
+
+Returns
+-------
+Discretized version of data with the same dimension.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -58,6 +74,16 @@ This is achieved by searching for the index of each value in `x`
 into `qts`, which is assumed to be a 1-D sorted array.
 
 Parameters
+----------
+x
+    A `numpy` array of data to be discretized
+qts:
+    A `numpy` array of percentiles. This should be a 1-D array sorted in
+    ascending order.
+
+Returns
+-------
+A discretized data `numpy` array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

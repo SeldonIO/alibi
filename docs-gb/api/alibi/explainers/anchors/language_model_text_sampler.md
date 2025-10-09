@@ -25,6 +25,27 @@ create_mask(anchor: tuple, num_samples: int, sample_proba: float = 1.0, filling:
 Create mask for words to be perturbed.
 
 Parameters
+----------
+anchor
+    Indices represent the positions of the words to be kept unchanged.
+num_samples
+    Number of perturbed sentences to be returned.
+sample_proba
+    Probability of a word being replaced.
+filling:
+    Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``.
+frac_mask_templates
+    Fraction of mask templates from the number of requested samples.
+**kwargs
+    Other arguments to be passed to other methods.
+
+Returns
+-------
+raw
+    Array with masked instances.
+data
+    A `(num_samples, m)`-dimensional boolean array, where `m` is the number of tokens
+    in the instance to be explained.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -46,6 +67,26 @@ fill_mask(raw: numpy.ndarray, data: numpy.ndarray, num_samples: int, top_n: int 
 Fill in the masked tokens with language model.
 
 Parameters
+----------
+raw
+    Array of mask templates.
+data
+    Binary mask having 0 where the word was masked.
+num_samples
+    Number of samples to be drawn.
+top_n:
+    Use the top n words when sampling.
+batch_size_lm:
+    Batch size used for language model.
+filling
+    Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``.
+**kwargs
+    Other paremeters to be passed to other methods.
+
+Returns
+-------
+raw
+    Array containing `num_samples` elements. Each element is a perturbed sentence.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -68,6 +109,13 @@ get_sample_ids(punctuation: str = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~', stopword
 Find indices in words which can be perturbed.
 
 Parameters
+----------
+punctuation
+    String of punctuation characters.
+stopwords
+    List of stopwords.
+**kwargs
+    Other arguments. Not used.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -89,6 +137,29 @@ except those in anchor, are replaced by words sampled according to the language
 model's predictions.
 
 Parameters
+----------
+anchor:
+    Indices represent the positions of the words to be kept unchanged.
+num_samples:
+    Number of perturbed sentences to be returned.
+sample_proba:
+    Probability of a token being replaced by a similar token.
+top_n:
+    Used for top n sampling.
+batch_size_lm:
+    Batch size used for language model.
+filling:
+    Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``.
+**kwargs
+    Other arguments to be passed to other methods.
+
+Returns
+-------
+raw
+    Array containing `num_samples` elements. Each element is a perturbed sentence.
+data
+    A `(num_samples, m)`-dimensional boolean array, where `m` is the number of tokens
+    in the instance to be explained.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -140,6 +211,9 @@ set_text(text: str) -> None
 Sets the text to be processed
 
 Parameters
+----------
+text
+  Text to be processed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

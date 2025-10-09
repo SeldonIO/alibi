@@ -18,6 +18,17 @@ predict_batches(X: numpy.ndarray, predictor: Callable, batch_size: int) -> numpy
 Predict the classification labels of the input dataset. This is performed in batches.
 
 Parameters
+----------
+X
+    Input to be classified.
+predictor
+    Prediction function.
+batch_size
+    Maximum batch size to be used during each inference step.
+
+Returns
+-------
+Classification labels.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -38,6 +49,9 @@ generate_empty_condition(X: typing.Any) -> None
 Empty conditioning.
 
 Parameters
+----------
+X
+    Input instance.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -58,6 +72,15 @@ reward is a sparse/binary reward: 1 if the most likely classes from the predicti
 0 otherwise.
 
 Parameters
+----------
+Y_pred
+    Prediction output as a distribution over the possible classes.
+Y_true
+    True label as a distribution over the possible classes.
+
+Returns
+-------
+Classification reward per instance. 1 if the most likely classes match, 0 otherwise.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -73,6 +96,15 @@ get_hard_distribution(Y: numpy.ndarray, num_classes: Optional[int] = None) -> nu
 Constructs the hard label distribution (one-hot encoding).
 
 Parameters
+----------
+Y
+    Prediction array. Can be soft or hard label distribution, or a label.
+num_classes
+    Number of classes to be considered.
+
+Returns
+-------
+Hard label distribution (one-hot encoding).
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -91,6 +123,14 @@ identity_function(X: typing.Any) -> typing.Any
 Identity function.
 
 Parameters
+----------
+X
+    Input instance.
+
+Returns
+-------
+X
+    The input instance.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

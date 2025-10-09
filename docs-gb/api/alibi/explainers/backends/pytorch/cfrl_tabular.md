@@ -13,6 +13,15 @@ consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor, kwargs)
 Computes heterogeneous consistency loss.
 
 Parameters
+----------
+Z_cf_pred
+    Predicted counterfactual embedding.
+Z_cf_tgt
+    Counterfactual embedding target.
+
+Returns
+-------
+Heterogeneous consistency loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -28,6 +37,17 @@ l0_ohe(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') -> to
 Computes the L0 loss for a one-hot encoding representation.
 
 Parameters
+----------
+input
+    Input tensor.
+target
+    Target tensor
+reduction
+    Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
+
+Returns
+-------
+L0 loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -47,6 +67,17 @@ l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') -> t
 Computes L1 loss.
 
 Parameters
+----------
+input
+    Input tensor.
+target
+    Target tensor.
+reduction
+    Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
+
+Returns
+-------
+L1 loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -66,6 +97,16 @@ sample_differentiable(X_hat_split: List[torch.Tensor], category_map: Dict[int, L
 Samples differentiable reconstruction.
 
 Parameters
+----------
+X_hat_split
+    List of reconstructed columns form the auto-encoder.
+category_map
+    Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+    values for an attribute.
+
+Returns
+-------
+Differentiable reconstruction.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -84,6 +125,22 @@ sparsity_loss(X_hat_split: List[torch.Tensor], X_ohe: torch.Tensor, category_map
 Computes heterogeneous sparsity loss.
 
 Parameters
+----------
+X_hat_split
+    List of one-hot encoded reconstructed columns form the auto-encoder.
+X_ohe
+    One-hot encoded representation of the input.
+category_map
+    Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+    values for an attribute.
+weight_num
+    Numerical loss weight.
+weight_cat
+    Categorical loss weight.
+
+Returns
+-------
+Heterogeneous sparsity loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

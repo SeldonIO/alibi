@@ -35,6 +35,14 @@ forward(x: torch.Tensor) -> Union[torch.Tensor, List[torch.Tensor]]
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+x_hat
+    Reconstruction of the input tensor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -74,6 +82,13 @@ forward(x: torch.Tensor) -> List[torch.Tensor]
 Forward pass.
 
 Parameters
+----------
+x
+    Input tensor.
+
+Returns
+-------
+List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the         numerical features if they exist, and the rest of the elements correspond to each categorical feature.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

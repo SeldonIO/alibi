@@ -1,9 +1,4 @@
 # `alibi.explainers.anchors.anchor_base`
-## Constants
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.anchors.anchor_base (WARNING)>
-```
 ## `AnchorBaseBeam`
 
 ### Constructor
@@ -34,6 +29,35 @@ noise distribution). The algorithm maximises the coverage of the solution found 
 of records containing the feature subset in set of samples.
 
 Parameters
+----------
+delta
+    Used to compute `beta`.
+epsilon
+    Precision bound tolerance for convergence.
+desired_confidence
+    Desired level of precision (`tau` in `paper <https://homes.cs.washington.edu/~marcotcr/aaai18.pdf>`_).
+beam_size
+    Beam width.
+epsilon_stop
+    Confidence bound margin around desired precision.
+min_samples_start
+    Min number of initial samples.
+max_anchor_size
+    Max number of features in result.
+stop_on_first
+    Stop on first valid result found.
+coverage_samples
+    Number of samples from which to build a coverage set.
+batch_size
+    Number of samples used for an arm evaluation.
+verbose
+    Whether to print intermediate LUCB & anchor selection output.
+verbose_every
+    Print intermediate output every verbose_every steps.
+
+Returns
+-------
+Explanation dictionary containing anchors with metadata like coverage and precision and examples.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -61,6 +85,18 @@ compute_beta(n_features: int, t: int, delta: float) -> float
 
 Parameters
 
+----------
+n_features
+    Number of candidate anchors.
+t
+    Iteration number.
+delta
+    Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`.
+
+Returns
+-------
+Level used to update upper and lower precision bounds.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `n_features` | `int` |  |  |
@@ -79,6 +115,17 @@ dlow_bernoulli(p: numpy.ndarray, level: numpy.ndarray, n_iter: int = 17) -> nump
 Update lower precision bound for a candidate anchors dependent on the KL-divergence.
 
 Parameters
+----------
+p
+    Precision of candidate anchors.
+level
+    `beta / nb of samples` for each result.
+n_iter
+    Number of iterations during lower bound update.
+
+Returns
+-------
+Updated lower precision bounds array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -97,6 +144,16 @@ draw_samples(anchors: list, batch_size: int) -> Tuple[tuple, tuple]
 
 Parameters
 
+----------
+anchors
+    Anchors on which samples are conditioned.
+batch_size
+    The number of samples drawn for each result.
+
+Returns
+-------
+A tuple of positive samples (for which prediction matches desired label) and a tuple of         total number of samples drawn.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `anchors` | `list` |  |  |
@@ -114,6 +171,17 @@ dup_bernoulli(p: numpy.ndarray, level: numpy.ndarray, n_iter: int = 17) -> numpy
 Update upper precision bound for a candidate anchors dependent on the KL-divergence.
 
 Parameters
+----------
+p
+    Precision of candidate anchors.
+level
+    `beta / nb of samples` for each result.
+n_iter
+    Number of iterations during lower bound update.
+
+Returns
+-------
+Updated upper precision bounds array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -137,6 +205,18 @@ apply and yield the same prediction as on the instance to be explained (`covered
 or a different prediction (`covered_false`).
 
 Parameters
+----------
+features
+    Sorted indices of features in result.
+success
+    Indicates whether an anchor satisfying precision threshold was met or not.
+batch_size
+    Number of samples among which positive and negative examples for partial anchors are
+    selected if partial anchors have not already been explicitly sampled.
+
+Returns
+-------
+Anchor dictionary with result features and additional metadata.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -158,6 +238,15 @@ Finds the number of samples already drawn for each result in anchors, their
 comparisons with the instance to be explained and, optionally, coverage.
 
 Parameters
+----------
+anchors
+    Candidate anchors.
+coverages
+    If ``True``, the statistics returned contain the coverage of the specified anchors.
+
+Returns
+-------
+Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -176,6 +265,27 @@ kllucb(anchors: list, init_stats: dict, epsilon: float, delta: float, batch_size
 Implements the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013).
 
 Parameters
+----------
+anchors:
+    A list of anchors from which two critical anchors are selected (see Kaufmann and Kalyanakrishnan, 2013).
+init_stats
+    Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
+epsilon
+    Precision bound tolerance for convergence.
+delta
+    Used to compute `beta`.
+batch_size
+    Number of samples.
+top_n
+    Min of beam width size or number of candidate anchors.
+verbose
+    Whether to print intermediate output.
+verbose_every
+    Whether to print intermediate output every `verbose_every` steps.
+
+Returns
+-------
+Indices of best result options. Number of indices equals min of beam width or nb of candidate anchors.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -199,6 +309,14 @@ propose_anchors(previous_best: list) -> list
 
 Parameters
 
+----------
+previous_best
+    List with tuples of result candidates.
+
+Returns
+-------
+List with tuples of candidate anchors with additional metadata.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `previous_best` | `list` |  |  |
@@ -217,6 +335,25 @@ Determines a set of two anchors by updating the upper bound for low empirical pr
 the lower bound for anchors with high empirical precision.
 
 Parameters
+----------
+means
+    Empirical mean result precisions.
+ub
+    Upper bound on result precisions.
+lb
+    Lower bound on result precisions.
+n_samples
+    The number of samples drawn for each candidate result.
+delta
+    Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`.
+top_n
+    Number of arms to be selected.
+t
+    Iteration number.
+
+Returns
+-------
+Upper and lower precision bound indices.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -240,6 +377,21 @@ more samples need to be drawn in order to estimate the anchors precision with `d
 tolerance.
 
 Parameters
+----------
+means:
+    Mean precisions (each element represents a different result).
+ubs:
+    Precisions' upper bounds (each element represents a different result).
+lbs:
+    Precisions' lower bounds (each element represents a different result).
+desired_confidence:
+    Desired level of confidence for precision estimation.
+epsilon_stop:
+    Tolerance around desired precision.
+
+Returns
+-------
+Boolean array indicating whether more samples are to be drawn for that particular result.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -260,6 +412,24 @@ Updates the explainer state (see :py:meth:`alibi.explainers.anchors.anchor_base.
 for full state definition).
 
 Parameters
+----------
+covered_true
+    Examples where the result applies and the prediction is the same as on
+    the instance to be explained.
+covered_false
+    Examples where the result applies and the prediction is the different to
+    the instance to be explained.
+samples
+    A tuple containing discretized data, coverage and the result sampled.
+labels
+    An array indicating whether the prediction on the sample matches the label
+    of the instance to be explained.
+anchor
+    The result to be updated.
+
+Returns
+-------
+A tuple containing the number of instances equals desired label of observation         to be explained the total number of instances sampled, and the result that was sampled.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

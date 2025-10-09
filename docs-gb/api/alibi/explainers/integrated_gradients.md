@@ -1,22 +1,4 @@
 # `alibi.explainers.integrated_gradients`
-## Constants
-### `DEFAULT_DATA_INTGRAD`
-```python
-DEFAULT_DATA_INTGRAD: dict = { 'X': None,
-  'attributions': None,
-  'baselines': None,
-  'deltas': None,
-  'forward_kwargs': None,
-  'predictions': None}
-```
-### `DEFAULT_META_INTGRAD`
-```python
-DEFAULT_META_INTGRAD: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['whitebox'], 'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.explainers.integrated_gradients (WARNING)>
-```
 ## `IntegratedGradients`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`
@@ -49,6 +31,42 @@ Calculates the attributions for each input feature or element of layer and
 returns an Explanation object.
 
 Parameters
+----------
+X
+    Instance for which integrated gradients attribution are computed.
+forward_kwargs
+    Input keyword args. If it's not ``None``, it must be a dict with `numpy` arrays as values.
+    The first dimension of the arrays must correspond to the number of examples.
+    It will be repeated for each of `n_steps` along the integrated path.
+    The attributions are not computed with respect to these arguments.
+baselines
+    Baselines (starting point of the path integral) for each instance.
+    If the passed value is an `np.ndarray` must have the same shape as `X`.
+    If not provided, all features values for the baselines are set to 0.
+target
+    Defines which element of the model output is considered to compute the gradients.
+    Target can be a numpy array, a list or a numeric value.
+    Numeric values are only valid if the model's output is a rank-n tensor
+    with n <= 2 (regression and classification models).
+    If a numeric value is passed, the gradients are calculated for
+    the same element of the output for all data points.
+    For regression models whose output is a scalar, target should not be provided.
+    For classification models `target` can be either the true classes or the classes predicted by the model.
+    It must be provided for classification models and regression models whose output is a vector.
+    If the model's output is a rank-n tensor with n > 2,
+    the target must be a rank-2 numpy array or a list of lists (a matrix) with dimensions nb_samples X (n-1) .
+attribute_to_layer_inputs
+    In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
+    outputs. If ``True``, gradients are computed for the layer's inputs, if ``False`` for the layer's outputs.
+
+Returns
+-------
+explanation
+    `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
+    for each feature. See usage at `IG examples`_ for details.
+
+    .. _IG examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -70,6 +88,9 @@ reset_predictor(predictor: keras.src.models.model.Model) -> None
 Resets the predictor model.
 
 Parameters
+----------
+predictor
+    New prediction model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

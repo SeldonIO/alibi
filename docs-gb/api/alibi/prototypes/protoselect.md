@@ -1,17 +1,4 @@
 # `alibi.prototypes.protoselect`
-## Constants
-### `DEFAULT_DATA_PROTOSELECT`
-```python
-DEFAULT_DATA_PROTOSELECT: dict = {'prototype_indices': None, 'prototype_labels': None, 'prototypes': None}
-```
-### `DEFAULT_META_PROTOSELECT`
-```python
-DEFAULT_META_PROTOSELECT: dict = {'explanation': ['global'], 'name': None, 'params': {}, 'type': ['data'], 'version': None}
-```
-### `logger`
-```python
-logger: Logger = <Logger alibi.prototypes.protoselect (WARNING)>
-```
 ## `ProtoSelect`
 
 _Inherits from:_ `Summariser`, `FitMixin`, `ABC`, `Base`
@@ -46,6 +33,21 @@ the optional dataset `Z` is provided, the kernel matrix has a shape of `NZ x NX`
 number of instances in `Z`.
 
 Parameters
+---------
+X
+    Dataset to be summarised.
+y
+    Labels of the dataset `X` to be summarised. The labels are expected to be represented as integers
+    `[0, 1, ..., L-1]`, where `L` is the number of classes in the dataset `X`.
+Z
+    Optional dataset to choose the prototypes from. If ``Z=None``, the prototypes will be selected from the
+    dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X`, but
+    it is summarised by prototypes belonging to the dataset `Z`.
+
+Returns
+-------
+self
+    Reference to itself.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -68,6 +70,13 @@ prototypes than the requested one. To increase the number of prototypes, reduce 
 (`eps`), and the penalty for adding a prototype (`lambda_penalty`).
 
 Parameters
+----------
+num_prototypes
+    Maximum number of prototypes to be selected.
+
+Returns
+-------
+An `Explanation` object containing the prototypes, prototype indices and prototype labels with additional         metadata as attributes.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -89,6 +98,32 @@ training instances correctly classified according to the 1-KNN classifier
 (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
 
 Parameters
+----------
+summary
+    An `Explanation` object produced by a call to the
+    :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
+trainset
+    Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
+preprocess_fn
+    Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
+knn_kw
+    Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+    set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
+    If the `metric` is not specified, it will be set by default to ``'euclidean'``.
+    See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+
+Returns
+-------
+A dictionary containing:
+
+ - ``'prototype_indices'`` - an array of the prototype indices.
+
+ - ``'prototype_importances'`` - an array of prototype importances.
+
+ - ``'X_protos'`` - an array of raw prototypes.
+
+ - ``'X_protos_ft'`` - an optional array of preprocessed prototypes. If the ``preprocess_fn=None``,      no preprocessing is applied and ``None`` is returned instead.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -111,6 +146,52 @@ Cross-validation parameter selection for `ProtoSelect` with Euclidean distance. 
 the best epsilon radius.
 
 Parameters
+----------
+trainset
+    Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
+protoset
+    Tuple, `(Z, )`, consisting of the dataset to choose the prototypes from. If `Z` is not provided
+    (i.e., ``protoset=None``), the prototypes will be selected from the training dataset `X`. Otherwise, if `Z`
+    is provided, the dataset to be summarised is still `X`, but it is summarised by prototypes belonging to
+    the dataset `Z`. Note that the argument is passed as a tuple with a single element for consistency reasons.
+valset
+    Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding
+    validation labels. 1-KNN classifier is evaluated on the validation dataset to obtain the best epsilon radius.
+    In case ``valset=None``, then `n-splits` cross-validation is performed on the `trainset`.
+num_prototypes
+    The number of prototypes to be selected.
+eps_grid
+    Optional grid of values to select the epsilon radius from. If not specified, the search grid is
+    automatically proposed based on the inter-distances between `X` and `Z`. The distances are filtered
+    by considering only values in between the `quantiles` values. The minimum and maximum distance values are
+    used to define the range of values to search the epsilon radius. The interval is discretized in `grid_size`
+    equidistant bins.
+quantiles
+    Quantiles, `(q_min, q_max)`, to be used to filter the range of values of the epsilon radius. The expected
+    quantile values are in `[0, 1]` and clipped to `[0, 1]` if outside the range. See `eps_grid` for usage.
+    If not specified, no filtering is applied. Only used if ``eps_grid=None``.
+grid_size
+    The number of equidistant bins to be used to discretize the `eps_grid` automatically proposed interval.
+    Only used if ``eps_grid=None``.
+batch_size
+    Batch size to be used for kernel matrix computation.
+preprocess_fn
+    Preprocessing function to be applied to the data instance before applying the kernel.
+protoselect_kw
+    Keyword arguments passed to :py:meth:`alibi.prototypes.protoselect.ProtoSelect.__init__`.
+knn_kw
+    Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+    set automatically to 1 and the `metric` will be set to ``'euclidean``. See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+kfold_kw
+    Keyword arguments passed to `sklearn.model_selection.KFold`. See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html
+
+Returns
+-------
+Dictionary containing
+ - ``'best_eps'``: ``float`` - the best epsilon radius according to the accuracy of a 1-KNN classifier.
+ - ``'meta'``: ``dict`` - dictionary containing argument and data gather throughout cross-validation.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -143,6 +224,35 @@ The size of each prototype is proportional to the logarithm of the number of ass
 classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
 
 Parameters
+----------
+summary
+    An `Explanation` object produced by a call to the
+    :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
+trainset
+    Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
+reducer
+    2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
+    input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
+    on the feature representation obtained after passing the input instances through the `preprocess_fn`.
+preprocess_fn
+    Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
+knn_kw
+    Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+    set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
+    If the `metric` is not specified, it will be set by default to ``'euclidean'``.
+    See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+ax
+    A `matplotlib` axes object to plot on.
+fig_kw
+    Keyword arguments passed to the `fig.set` function.
+image_size
+    Shape to which the prototype images will be resized. A zoom of 1 will display the image having the shape
+    `image_size`.
+zoom_lb
+    Zoom lower bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+zoom_ub
+    Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

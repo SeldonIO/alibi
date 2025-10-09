@@ -6,20 +6,6 @@ alibi that is not usable due to missing optional dependencies this code is used 
 with an object that throws an error on use. This way we avoid errors at import time that prevent the user using
 functionality independent of the missing dependency.
 
-## Constants
-### `err_msg_template`
-```python
-err_msg_template: Template = <string.Template object at 0x17bf61370>
-```
-### `ERROR_TYPES`
-```python
-ERROR_TYPES: dict = { 'numba': 'shap',
-  'pytorch': 'torch',
-  'ray': 'ray',
-  'shap': 'shap',
-  'tensorflow': 'tensorflow',
-  'torch': 'torch'}
-```
 ## `MissingDependency`
 
 Missing Dependency Class
@@ -59,6 +45,17 @@ import functionality its return type has to be `Any`. Using objects imported wit
 misspecification of types as `Any` when the developer intended to be more restrictive.
 
 Parameters
+----------
+module_name
+    The module to import
+names
+    The names to import from the module. If None, all names are imported.
+
+Returns
+-------
+The module or named objects within the modules if names is not None. If the import fails due to a
+ModuleNotFoundError or ImportError then the requested module or named objects are replaced with instances of
+the MissingDependency class above.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

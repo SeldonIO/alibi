@@ -11,8 +11,8 @@ LanguageModelSampler(self, model: alibi.utils.lang_model.LanguageModel, perturb_
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `model` | `alibi.utils.lang_model.LanguageModel` |  | Transformers masked language model. |
-| `perturb_opts` | `dict` |  | Perturbation options. |
+| `model` | `alibi.utils.lang_model.LanguageModel` |  |  |
+| `perturb_opts` | `dict` |  |  |
 
 ### Methods
 
@@ -24,14 +24,15 @@ create_mask(anchor: tuple, num_samples: int, sample_proba: float = 1.0, filling:
 
 Create mask for words to be perturbed.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchor` | `tuple` |  | Indices represent the positions of the words to be kept unchanged. |
-| `num_samples` | `int` |  | Number of perturbed sentences to be returned. |
-| `sample_proba` | `float` | `1.0` | Probability of a word being replaced. |
-| `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
-| `frac_mask_templates` | `float` | `0.1` | Fraction of mask templates from the number of requested samples. |
-| `Other` |  |  |  |
+| `anchor` | `tuple` |  |  |
+| `num_samples` | `int` |  |  |
+| `sample_proba` | `float` | `1.0` |  |
+| `filling` | `str` | `'parallel'` |  |
+| `frac_mask_templates` | `float` | `0.1` |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -44,15 +45,16 @@ fill_mask(raw: numpy.ndarray, data: numpy.ndarray, num_samples: int, top_n: int 
 
 Fill in the masked tokens with language model.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `raw` | `numpy.ndarray` |  | Array of mask templates. |
-| `data` | `numpy.ndarray` |  | Binary mask having 0 where the word was masked. |
-| `num_samples` | `int` |  | Number of samples to be drawn. |
-| `top_n` | `int` | `100` | Use the top n words when sampling. |
-| `batch_size_lm` | `int` | `32` | Batch size used for language model. |
-| `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
-| `Other` |  |  |  |
+| `raw` | `numpy.ndarray` |  |  |
+| `data` | `numpy.ndarray` |  |  |
+| `num_samples` | `int` |  |  |
+| `top_n` | `int` | `100` |  |
+| `batch_size_lm` | `int` | `32` |  |
+| `filling` | `str` | `'parallel'` |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -65,11 +67,12 @@ get_sample_ids(punctuation: str = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~', stopword
 
 Find indices in words which can be perturbed.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `punctuation` | `str` | `'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'` | String of punctuation characters. |
-| `stopwords` | `Optional[List[str]]` | `None` | List of stopwords. |
-| `Other` |  |  |  |
+| `punctuation` | `str` | `'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'` |  |
+| `stopwords` | `Optional[List[str]]` | `None` |  |
 
 **Returns**
 - Type: `None`
@@ -85,15 +88,16 @@ The function returns an `numpy` array of `num_samples` where randomly chosen fea
 except those in anchor, are replaced by words sampled according to the language
 model's predictions.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchor` | `tuple` |  | Indices represent the positions of the words to be kept unchanged. |
-| `num_samples` | `int` |  | Number of perturbed sentences to be returned. |
-| `sample_proba` | `float` | `0.5` | Probability of a token being replaced by a similar token. |
-| `top_n` | `int` | `100` | Used for top n sampling. |
-| `batch_size_lm` | `int` | `32` | Batch size used for language model. |
-| `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
-| `Other` |  |  |  |
+| `anchor` | `tuple` |  |  |
+| `num_samples` | `int` |  |  |
+| `sample_proba` | `float` | `0.5` |  |
+| `top_n` | `int` | `100` |  |
+| `batch_size_lm` | `int` | `32` |  |
+| `filling` | `str` | `'parallel'` |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -135,9 +139,11 @@ set_text(text: str) -> None
 
 Sets the text to be processed
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `text` | `str` |  | Text to be processed. |
+| `text` | `str` |  |  |
 
 **Returns**
 - Type: `None`

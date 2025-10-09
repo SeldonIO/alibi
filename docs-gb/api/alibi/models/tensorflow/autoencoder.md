@@ -21,8 +21,8 @@ AE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
-| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
+| `encoder` | `keras.src.models.model.Model` |  |  |
+| `decoder` | `keras.src.models.model.Model` |  |  |
 
 ### Methods
 
@@ -34,10 +34,11 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> Union[tensorflow.p
 
 Forward pass.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `Union[tensorflow.python.framework.tensor.Tensor, List[tensorflow.python.framework.tensor.Tensor]]`
@@ -59,8 +60,8 @@ HeAE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.mode
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
-| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
+| `encoder` | `keras.src.models.model.Model` |  |  |
+| `decoder` | `keras.src.models.model.Model` |  |  |
 
 ### Methods
 
@@ -72,9 +73,11 @@ build(input_shape: Tuple[int, .Ellipsis]) -> None
 
 Build method.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `input_shape` | `Tuple[int, .Ellipsis]` |  | Tensor's input shape. |
+| `input_shape` | `Tuple[int, .Ellipsis]` |  |  |
 
 **Returns**
 - Type: `None`
@@ -87,10 +90,11 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> List[tensorflow.py
 
 Forward pass.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`

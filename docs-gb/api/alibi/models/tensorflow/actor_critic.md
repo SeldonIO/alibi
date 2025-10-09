@@ -21,8 +21,8 @@ Actor(self, hidden_dim: int, output_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  | Hidden dimension |
-| `output_dim` | `int` |  | Output dimension |
+| `hidden_dim` | `int` |  |  |
+| `output_dim` | `int` |  |  |
 
 ### Methods
 
@@ -34,10 +34,11 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.
 
 Forward pass.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -79,7 +80,7 @@ Critic(self, hidden_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  | Hidden dimension. |
+| `hidden_dim` | `int` |  |  |
 
 ### Methods
 
@@ -91,9 +92,11 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.
 
 Forward pass.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`

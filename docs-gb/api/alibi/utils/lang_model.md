@@ -32,7 +32,7 @@ BertBaseUncased(self, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `preloading` | `bool` | `True` | See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__`. |
+| `preloading` | `bool` | `True` |  |
 
 ### Properties
 
@@ -58,9 +58,11 @@ with the special character ``'Ġ'`` and thus we need to check the absence of the
 the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
 this method has to be implemented for each language model. See module docstring for namings.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is a subword. |
+| `token` | `str` |  |  |
 
 **Returns**
 - Type: `bool`
@@ -77,7 +79,7 @@ DistilbertBaseUncased(self, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `preloading` | `bool` | `True` | See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__`. |
+| `preloading` | `bool` | `True` |  |
 
 ### Properties
 
@@ -103,9 +105,11 @@ with the special character ``'Ġ'`` and thus we need to check the absence of the
 the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
 this method has to be implemented for each language model. See module docstring for namings.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is a subword. |
+| `token` | `str` |  |  |
 
 **Returns**
 - Type: `bool`
@@ -122,8 +126,8 @@ LanguageModel(self, model_path: str, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `model_path` | `str` |  | `transformers` package model path. |
-| `preloading` | `bool` | `True` | Whether to preload the online version of the transformer. If ``False``, a call to `from_disk` method is expected. |
+| `model_path` | `str` |  |  |
+| `preloading` | `bool` | `True` |  |
 
 ### Properties
 
@@ -143,9 +147,11 @@ from_disk(path: Union[str, pathlib.Path])
 
 Loads a model from disk.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, pathlib.Path]` |  | Path to the checkpoint. |
+| `path` | `Union[str, pathlib.Path]` |  |  |
 
 #### `head_tail_split`
 
@@ -159,9 +165,11 @@ number of tokens. Thus is necessary to split the text to meet this constraint.
 After the text is split in head and tail, only the head is considered for operation.
 Thus the tail will remain unchanged.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `text` | `str` |  | Text to be split in head and tail. |
+| `text` | `str` |  |  |
 
 **Returns**
 - Type: `Tuple[str, str, List[str], List[str]]`
@@ -174,10 +182,12 @@ is_punctuation(token: str, punctuation: str) -> bool
 
 Checks if the given token is punctuation.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is punctuation. |
-| `punctuation` | `str` |  | String containing all punctuation to be considered. |
+| `token` | `str` |  |  |
+| `punctuation` | `str` |  |  |
 
 **Returns**
 - Type: `bool`
@@ -190,12 +200,14 @@ is_stop_word(tokenized_text: List[str], start_idx: int, punctuation: str, stopwo
 
 Checks if the given word starting at the given index is in the list of stopwords.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `tokenized_text` | `List[str]` |  | Tokenized text. |
-| `start_idx` | `int` |  | Starting index of a word. |
-| `punctuation` | `str` |  | Punctuation to be considered. See :py:meth:`alibi.utils.lang_model.LanguageModel.select_entire_word`. |
-| `stopwords` | `Optional[List[str]]` |  | List of stop words. The words in this list should be lowercase. |
+| `tokenized_text` | `List[str]` |  |  |
+| `start_idx` | `int` |  |  |
+| `punctuation` | `str` |  |  |
+| `stopwords` | `Optional[List[str]]` |  |  |
 
 **Returns**
 - Type: `bool`
@@ -216,9 +228,11 @@ with the special character ``'Ġ'`` and thus we need to check the absence of the
 the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
 this method has to be implemented for each language model. See module docstring for namings.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is a subword. |
+| `token` | `str` |  |  |
 
 **Returns**
 - Type: `bool`
@@ -231,11 +245,13 @@ predict_batch_lm(x: transformers.tokenization_utils_base.BatchEncoding, vocab_si
 
 `Tensorflow` language model batch predictions for `AnchorText`.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `transformers.tokenization_utils_base.BatchEncoding` |  | Batch of instances. |
-| `vocab_size` | `int` |  | Vocabulary size of language model. |
-| `batch_size` | `int` |  | Batch size used for predictions. |
+| `x` | `transformers.tokenization_utils_base.BatchEncoding` |  |  |
+| `vocab_size` | `int` |  |  |
+| `batch_size` | `int` |  |  |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -253,11 +269,13 @@ tail_token_2 ... tail_token_k]``). The tail tokens can be identified based on th
 presence/absence of `SUBWORD_PREFIX`. See :py:meth:`alibi.utils.lang_model.LanguageModel.is_subword_prefix`
 for more details.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `tokenized_text` | `List[str]` |  | Tokenized text. |
-| `start_idx` | `int` |  | Starting index of a word. |
-| `punctuation` | `str` |  | String of punctuation to be considered. If it encounters a token composed only of characters in `punctuation` it terminates the search. |
+| `tokenized_text` | `List[str]` |  |  |
+| `start_idx` | `int` |  |  |
+| `punctuation` | `str` |  |  |
 
 **Returns**
 - Type: `str`
@@ -270,9 +288,11 @@ to_disk(path: Union[str, pathlib.Path])
 
 Saves a model to disk.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, pathlib.Path]` |  | Path to the checkpoint. |
+| `path` | `Union[str, pathlib.Path]` |  |  |
 
 ## `RobertaBase`
 
@@ -286,7 +306,7 @@ RobertaBase(self, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `preloading` | `bool` | `True` | See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__` constructor. |
+| `preloading` | `bool` | `True` |  |
 
 ### Properties
 
@@ -312,9 +332,11 @@ with the special character ``'Ġ'`` and thus we need to check the absence of the
 the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
 this method has to be implemented for each language model. See module docstring for namings.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is a subword. |
+| `token` | `str` |  |  |
 
 **Returns**
 - Type: `bool`

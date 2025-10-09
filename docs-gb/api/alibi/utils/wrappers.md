@@ -29,25 +29,3 @@ Predictor(self, clf, preprocessor=None)
 | ---- | ---- | ------- | ----------- |
 | `clf` |  |  |  |
 | `preprocessor` |  | `None` |  |
-
-## Functions
-### `methdispatch`
-
-```python
-methdispatch(func)
-```
-
-A decorator that is used to support singledispatch style functionality
-
-for instance methods. By default, singledispatch selects a function to
-call from registered based on the type of args[0]::
-
-    def wrapper(*args, **kw):
-        return dispatch(args[0].__class__)(*args, **kw)
-
-This uses singledispatch to do achieve this but instead uses `args[1]`
-since `args[0]` will always be self.
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `func` |  |  |  |

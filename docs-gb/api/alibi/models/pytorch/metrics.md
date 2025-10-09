@@ -20,8 +20,7 @@ AccuracyMetric(self, name: str = 'accuracy')
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `name` | `str` | `'accuracy'` | Name of the metric. |
-| `reduction` |  |  | Metric's reduction type. Possible values `mean`|`sum`. By default `mean`. |
+| `name` | `str` | `'accuracy'` |  |
 
 ### Methods
 
@@ -33,10 +32,12 @@ compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.T
 
 Computes accuracy metric given the predicted label and the true label.
 
+Parameters
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  | Predicted label. |
-| `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  | True label. |
+| `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
+| `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
 
 **Returns**
 - Type: `None`
@@ -53,8 +54,8 @@ LossContainer(self, loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `loss` | `Callable[[.[<class 'torch.Tensor'>, <class 'torch.Tensor'>]], torch.Tensor]` |  | Loss function. |
-| `name` | `str` |  | Name of the loss function |
+| `loss` | `Callable[[.[<class 'torch.Tensor'>, <class 'torch.Tensor'>]], torch.Tensor]` |  |  |
+| `name` | `str` |  |  |
 
 ### Methods
 
@@ -74,6 +75,8 @@ result() -> Dict[str, float]
 
 Computes the average loss obtain by dividing the cumulated loss by the number of steps
 
+Returns
+
 **Returns**
 - Type: `Dict[str, float]`
 
@@ -91,8 +94,8 @@ Metric(self, reduction: alibi.models.pytorch.metrics.Reduction = <Reduction.MEAN
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `reduction` | `alibi.models.pytorch.metrics.Reduction` | `<Reduction.MEAN: 'mean'>` | Metric's reduction type. Possible values `mean`|`sum`. By default `mean`. |
-| `name` | `str` | `'unknown'` | Name of the metric. |
+| `reduction` | `alibi.models.pytorch.metrics.Reduction` | `<Reduction.MEAN: 'mean'>` |  |
+| `name` | `str` | `'unknown'` |  |
 
 ### Methods
 
@@ -122,6 +125,8 @@ result() -> Dict[str, float]
 ```
 
 Computes the result according to the reduction procedure.
+
+Returns
 
 **Returns**
 - Type: `Dict[str, float]`

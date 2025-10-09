@@ -126,7 +126,7 @@ def format_signature(func: Any) -> str:
     params_out = []
     hints = {}
     try:
-        hints = typing_get_type_hints_safe(func)
+        hints = typing_get_type_hints_safe(func)  # late-defined helper below
     except Exception:
         pass
     for name, param in sig.parameters.items():
@@ -151,6 +151,7 @@ def typing_get_type_hints_safe(obj: Any) -> Dict[str, Any]:
         mod = inspect.getmodule(obj)
         if mod is not None:
             globalns = dict(getattr(mod, "__dict__", {}))
+        # For methods, also include the class namespace
         if inspect.ismethod(obj) or (inspect.isfunction(obj) and "." in obj.__qualname__):
             cls_name = obj.__qualname__.split(".")[0]
             if cls_name and cls_name in globalns:
@@ -164,21 +165,22 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
     result = {
         "short": "",
         "long": "",
-        "params": [],
-        "returns": None,
-        "raises": [],
-        "examples": []
+        "params": [],   # list of dict(name,type,default,desc)
+        "returns": None,  # dict(type, desc)
+        "raises": [],   # list of dict(type, desc)
+        "examples": []  # list of code blocks or strings
     }
     if not doc:
         return result
 
+    # First try docstring_parser (NumPy/Google/reST)
     if _DOCSTRING_PARSER is not None:
         try:
-            parsed = _DOCSTRING_PARSER.parse(doc, style=_DOCSTRING_PARSER.DocstringStyle.NUMPYDOC)
-            
+            parsed = _DOCSTRING_PARSER.parse(doc, style=_DOCSTRING_PARSER.DocstringStyle.AUTO)
             result["short"] = (parsed.short_description or "").strip()
             result["long"] = (parsed.long_description or "").strip()
 
+            # parameters
             for p in parsed.params:
                 result["params"].append({
                     "name": p.arg_name or "",
@@ -187,60 +189,109 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
                     "desc": (p.description or "").strip(),
                 })
 
+            # returns (type + description if present)
             if parsed.returns:
                 result["returns"] = {
                     "type": (parsed.returns.type_name or "").strip(),
                     "desc": (parsed.returns.description or "").strip(),
                 }
 
+            # raises
             for r in parsed.raises:
                 result["raises"].append({
                     "type": (r.type_name or "").strip(),
                     "desc": (r.description or "").strip(),
                 })
 
+            # examples (best effort)
             for meta in getattr(parsed, "meta", []):
                 if str(meta.args or [""])[0].lower().startswith("example"):
                     if meta.description:
                         result["examples"].append(meta.description.strip())
-            
-            if result["params"] and any(not p.get("desc") for p in result["params"]):
-                param_match = re.search(r'Parameters\s*\n\s*-+\s*\n(.*?)(?=\n\s*(?:Returns?|Raises?|Yields?|Examples?|Notes?|See Also)\s*\n\s*-+|$)', 
-                                       doc, re.DOTALL | re.IGNORECASE)
-                if param_match:
-                    param_section = param_match.group(1)
-                    param_map = {p["name"]: p for p in result["params"]}
-                    
-                    lines = param_section.split('\n')
-                    current_param = None
-                    desc_lines = []
-                    
-                    for line in lines:
-                        if line and not line[0].isspace():
-                            if current_param and current_param in param_map:
-                                param_map[current_param]["desc"] = ' '.join(desc_lines).strip()
-                            
-                            param_name = line.strip().split()[0] if line.strip() else None
-                            if param_name and param_name in param_map:
-                                current_param = param_name
-                                desc_lines = []
-                            else:
-                                current_param = None
-                        elif line.strip() and current_param:
-                            desc_lines.append(line.strip())
-                    
-                    if current_param and current_param in param_map:
-                        param_map[current_param]["desc"] = ' '.join(desc_lines).strip()
-            
-            return result
 
         except Exception:
             pass
 
-    lines = doc.strip().splitlines()
-    result["short"] = lines[0].strip() if lines else ""
-    if len(lines) > 1:
-        result["long"] = "\n".join(lines[1:]).strip()
+    # Fallback for short/long if parser didn't get them
+    if not result["short"] and doc:
+        lines = doc.strip().splitlines()
+        result["short"] = lines[0].strip()
+        if len(lines) > 1:
+            result["long"] = "\n".join(l.rstrip() for l in lines[1:]).strip()
+
+    # ---- NumPy-style fallback for sections without trailing colon (e.g. "Parameters" + underline) ----
+    if not result["params"]:
+        numpy_params_block = re.search(
+            r"(^|\n)Parameters\s*\n[-=]{3,}\n(?P<body>.*?)(\n[A-Z][A-Za-z0-9 _]*\n[-=]{3,}\n|$)",
+            doc,
+            flags=re.DOTALL,
+        )
+        if numpy_params_block:
+            body = numpy_params_block.group("body").rstrip()
+            lines = body.splitlines()
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                if not line.strip():
+                    i += 1
+                    continue
+                m = re.match(r"^\s*([A-Za-z_][\w]*)\s*(?:[:]\s*([^,\n]+))?", line)
+                if m:
+                    name = m.group(1)
+                    typ = (m.group(2) or "").strip()
+                    i += 1
+                    desc_lines = []
+                    while i < len(lines) and (lines[i].startswith("    ") or (lines[i].strip() and lines[i][0].isspace() and not re.match(r"^\s*[A-Za-z_][\w]*\s*(?:[:]\s*[^,\n]+)?$", lines[i]))):
+                        desc_lines.append(lines[i].strip())
+                        i += 1
+                    desc = " ".join(dl.rstrip() for dl in desc_lines).strip()
+                    if not any(p["name"] == name for p in result["params"]):
+                        result["params"].append({"name": name, "type": typ, "default": "", "desc": desc})
+                    continue
+                i += 1
+
+    # --- Remove structured sections from the free-text "long" description ---
+    def _strip_known_sections(block: str) -> str:
+        if not block:
+            return block
+        # Sections we consider structured (handled elsewhere by the script)
+        sect_names = r"(Parameters|Returns|Return type|Raises|Yields|Attributes|Notes|Examples|See Also)"
+        # Style A: Google/reST-like "Section:\n<content>"
+        pat_colon = re.compile(
+            rf"(^|\n){sect_names}\s*:\s*\n.*?(?=\n[A-Z][A-Za-z0-9 _]*\s*:\s*\n|$)",
+            flags=re.DOTALL,
+        )
+        # Style B: NumPy-like
+        #   Section
+        #   -------
+        #   <content>
+        pat_underline = re.compile(
+            rf"(^|\n){sect_names}\s*\n[-=]{{3,}}\n.*?(?=\n[A-Z][A-Za-z0-9 _]*\n[-=]{{3,}}\n|$)",
+            flags=re.DOTALL,
+        )
+        out = pat_colon.sub("\n", block)
+        out = pat_underline.sub("\n", out)
+        # collapse excess blank lines introduced by removals
+        out = re.sub(r"\n{3,}", "\n\n", out).strip()
+        return out
+
+    # --- Remove reStructuredText tables ---
+    def _strip_rst_tables(block: str) -> str:
+        if not block:
+            return block
+        # Pattern to match reStructuredText table blocks (lines with +---+ borders)
+        # This matches from a line starting with + through to a blank line or end
+        rst_table_pattern = re.compile(
+            r"(^|\n)\+[-+=]+\+[^\n]*\n(?:[+|][^\n]*\n)*",
+            flags=re.MULTILINE
+        )
+        return rst_table_pattern.sub("\n", block)
+
+    # Clean the "long" narrative
+    if result["long"]:
+        result["long"] = _strip_known_sections(result["long"])
+        result["long"] = _strip_rst_tables(result["long"])
+        result["long"] = result["long"].strip()
 
     return result
 
@@ -248,14 +299,16 @@ def render_params_table(params: List[Dict[str, str]], sig: Optional[inspect.Sign
     """Render a Markdown table of parameters. Merge docstring info with signature types/defaults."""
     if not params and not sig:
         return ""
+    # Build a mapping name -> info from docstring
     ds_map: Dict[str, Dict[str, str]] = {p["name"]: p for p in params if p.get("name")}
-    rows: List[Tuple[str, str, str, str]] = []
+    rows: List[Tuple[str, str, str, str]] = []  # name, type, default, desc
     seen = set()
     if sig:
         for name, param in sig.parameters.items():
             if name in ("self", "cls"):
                 continue
             if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                # Skip *args and **kwargs if they lack meaningful documentation
                 ds = ds_map.get(name, {})
                 if not ds.get("type") and not ds.get("default") and not ds.get("desc"):
                     continue
@@ -266,6 +319,7 @@ def render_params_table(params: List[Dict[str, str]], sig: Optional[inspect.Sign
             desc = ds.get("desc", "")
             rows.append((name, typ, default, desc))
             seen.add(name)
+    # Include params documented but not in signature (e.g., kwargs)
     for name, ds in ds_map.items():
         if name in seen:
             continue
@@ -291,6 +345,7 @@ def render_returns_block(returns: Optional[Dict[str, str]], sig: Optional[inspec
     if returns:
         typ = returns.get("type", "") or ""
         desc = (returns.get("desc", "") or "").strip()
+    # If no docstring returns, try type hints
     if not typ and sig:
         ann = hints.get("return", sig.return_annotation)
         if ann is not inspect._empty:
@@ -316,9 +371,11 @@ def get_methods(cls: type, include_inherited: bool) -> List[Tuple[str, Any]]:
     for name, obj in inspect.getmembers(cls, predicate=inspect.isfunction):
         if not is_public_name(name):
             continue
+        # Skip methods defined on `object`
         if not include_inherited and obj.__qualname__.split(".")[0] != cls.__name__:
             continue
         methods.append((name, obj))
+    # Include classmethods and staticmethods declared in __dict__
     for name, obj in cls.__dict__.items():
         if not is_public_name(name):
             continue
@@ -326,10 +383,16 @@ def get_methods(cls: type, include_inherited: bool) -> List[Tuple[str, Any]]:
             fn = obj.__func__
             if (name, fn) not in methods:
                 methods.append((name, fn))
+    # Sort by name, keep __call__ last-ish
     methods.sort(key=lambda x: (x[0] == "__call__", x[0]))
     return methods
 
 def make_source_link(obj: Any, repo_root: Optional[str], source_url_prefix: Optional[str]) -> Optional[str]:
+    """
+    Build a GitHub (or other host) link to source lines for `obj` if possible.
+    - repo_root: local filesystem path to the repository root (so we can make a relative path).
+    - source_url_prefix: e.g. "https://github.com/SeldonIO/alibi/blob/main"
+    """
     if not source_url_prefix or not obj:
         return None
     try:
@@ -342,46 +405,30 @@ def make_source_link(obj: Any, repo_root: Optional[str], source_url_prefix: Opti
             try:
                 rel = file_path.relative_to(Path(repo_root).resolve())
             except Exception:
-                rel = file_path.name
+                rel = file_path.name  # fallback
         else:
             rel = file_path.name
         return f"{source_url_prefix.rstrip('/')}/{rel.as_posix()}#L{start}-L{end}"
     except Exception:
         return None
 
-def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_root: Optional[str], source_url_prefix: Optional[str]) -> str:
-    parts = []
-    title = f"# `{mod.__name__}`"
-    parts.append(title)
-    mod_ds = parse_docstring(inspect.getdoc(mod))
-    if mod_ds["short"] or mod_ds["long"]:
-        parts.append("")
-        if mod_ds["short"]:
-            parts.append(mod_ds["short"])
-        if mod_ds["long"]:
-            parts.append(mod_ds["long"])
-        parts.append("")
-    
-    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)
-    if classes:
-        for name, cls in classes:
-            parts.append(render_class(cls, include_inherited=include_inherited, verbose=verbose, repo_root=repo_root, source_url_prefix=source_url_prefix))
-    if funcs:
-        parts.append("## Functions")
-        for name, fn in funcs:
-            parts.append(render_function(name, fn, repo_root=repo_root, source_url_prefix=source_url_prefix))
-    return "\n".join(parts).strip() + "\n"
-
 def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: Optional[str] = None, source_url_prefix: Optional[str] = None) -> str:
     out = []
-    out.append(f"## `{cls.__name__}`\n")
+    out.append(f"## `{cls.__name__}`\n")  # Class name as a subsection
+
+    # Add inheritance information as a separate section (optional)
     base_names = [b.__name__ for b in getattr(cls, "__mro__", [])[1:] if b not in (object,)]
     if base_names:
         out.append(f"_Inherits from:_ {', '.join('`' + b + '`' for b in base_names)}\n")
+
+    # Add a "View source" link if available
     link = make_source_link(cls, repo_root, source_url_prefix)
     if link:
         out.append(f"[View source]({link})\n")
+
+    # Parse and include the class docstring (only if not inherited)
     class_doc = inspect.getdoc(cls)
+    # Check if the docstring is inherited by comparing with parent classes
     is_inherited_doc = False
     if class_doc:
         for base in cls.__mro__[1:]:
@@ -391,12 +438,15 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             if base_doc and base_doc == class_doc:
                 is_inherited_doc = True
                 break
+    
     if not is_inherited_doc:
         class_ds = parse_docstring(class_doc)
         if class_ds["short"]:
             out.append(class_ds["short"] + "\n")
         if class_ds["long"]:
             out.append(class_ds["long"] + "\n")
+
+    # Render dataclass fields
     if dataclasses.is_dataclass(cls):
         fields = dataclasses.fields(cls)
         if fields:
@@ -408,12 +458,15 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
                 default = ""
                 if f.default is not dataclasses.MISSING:
                     default = repr(f.default)
-                elif f.default_factory is not dataclasses.MISSING:
-                    default = f"{f.default_factory}()"
+                elif f.default_factory is not dataclasses.MISSING:  # type: ignore
+                    default = f"{f.default_factory}()"  # type: ignore
                 out.append(f"| `{f.name}` | `{typ}` | `{default}` |")
             out.append("")
+
+    # Render constructor
     init = getattr(cls, "__init__", None)
     if callable(init):
+        # Check if __init__ is inherited
         is_inherited_init = False
         for base in cls.__mro__[1:]:
             if base is object:
@@ -422,6 +475,7 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             if base_init and base_init is init:
                 is_inherited_init = True
                 break
+        
         if not is_inherited_init:
             sig = None
             hints = {}
@@ -439,37 +493,50 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             params_table = render_params_table(init_ds["params"], sig, hints)
             if params_table:
                 out.append("\n" + params_table + "\n")
+
+    # Render properties
     props = get_properties(cls)
     if props:
         out.append("### Properties\n")
         out.append("| Property | Type | Description |")
         out.append("| -------- | ---- | ----------- |")
-        for prop_name, prop in props:
+        for name, prop in props:
             ann = getattr(prop.fget, "__annotations__", {}).get("return", "")
             typ = type_to_str(ann) if ann else ""
             pdoc = parse_docstring(inspect.getdoc(prop.fget))
             desc = pdoc["short"] or pdoc["long"]
-            out.append(f"| `{prop_name}` | `{typ}` | {desc} |")
+            out.append(f"| `{name}` | `{typ}` | {desc} |")
         out.append("")
+
+    # Render methods
     methods = get_methods(cls, include_inherited=include_inherited)
     if methods:
         out.append("### Methods\n")
         for name, fn in methods:
             if name.startswith("_") and name != "__call__":
                 continue
+            
+            # Get the method's own docstring
             fn_doc = inspect.getdoc(fn)
+            
+            # Check if this method overrides an abstract method
             parent_abstract_doc = None
             for base in cls.__mro__[1:]:
                 if base is object:
                     continue
                 base_method = getattr(base, name, None)
                 if base_method and callable(base_method):
+                    # Check if the base method is abstract
                     if hasattr(base_method, '__isabstractmethod__') and base_method.__isabstractmethod__:
                         parent_abstract_doc = inspect.getdoc(base_method)
                         break
+            
+            # Use parent's docstring if method has no docstring and overrides abstract method
             use_doc = fn_doc
             if not fn_doc and parent_abstract_doc:
                 use_doc = parent_abstract_doc
+            
+            # Check if docstring is inherited from a non-abstract method
             is_inherited_method_doc = False
             if use_doc and not parent_abstract_doc:
                 for base in cls.__mro__[1:]:
@@ -478,10 +545,13 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
                     base_method = getattr(base, name, None)
                     if base_method and callable(base_method):
                         base_doc = inspect.getdoc(base_method)
+                        # Only skip if inherited from non-abstract method
                         if base_doc and base_doc == use_doc:
                             if not (hasattr(base_method, '__isabstractmethod__') and base_method.__isabstractmethod__):
                                 is_inherited_method_doc = True
                                 break
+            
+            # Render each method as a subsection (####) under Methods (###)
             fn_ds = parse_docstring(use_doc if not is_inherited_method_doc else None)
             sig = None
             hints = {}
@@ -543,12 +613,15 @@ def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_
         hints = typing_get_type_hints_safe(fn)
     except Exception:
         pass
+    # Render parameters table only (remove redundant text-based parameters section)
     params_table = render_params_table(ds["params"], sig, hints)
     if params_table:
         out.append(params_table + "\n")
+    # Render returns block
     ret_block = render_returns_block(ds["returns"], sig, hints)
     if ret_block:
         out.append(ret_block + "\n")
+    # Render raises
     if ds["raises"]:
         out.append("**Raises**")
         for r in ds["raises"]:
@@ -556,6 +629,7 @@ def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_
             desc = r.get("desc", "")
             out.append(f"- {typ} {desc}".strip())
         out.append("")
+    # Render examples
     if ds["examples"]:
         out.append("**Examples**")
         for ex in ds["examples"]:
@@ -571,11 +645,13 @@ def should_skip_module(mod_name: str, include_private: bool, exclude_globs: List
     for pat in exclude_globs:
         if fnmatch.fnmatch(mod_name, pat):
             return True
+    # Skip tests
     if ".tests" in mod_name or mod_name.endswith(".tests"):
         return True
     return False
 
 def walk_package(package: str, verbose: bool) -> List[str]:
+    """Return a sorted list of importable module names under the package."""
     try:
         pkg = importlib.import_module(package)
     except Exception as e:
@@ -598,6 +674,7 @@ def import_module_safely(mod_name: str, verbose: bool) -> Optional[ModuleType]:
 def select_public_members(mod: ModuleType, want_classes: bool = True, want_funcs: bool = True) -> Tuple[List[Tuple[str, Any]], List[Tuple[str, Any]]]:
     classes: List[Tuple[str, Any]] = []
     funcs: List[Tuple[str, Any]] = []
+
     allow = safe_get_module_all(mod)
     members = inspect.getmembers(mod)
     for name, obj in members:
@@ -613,54 +690,121 @@ def select_public_members(mod: ModuleType, want_classes: bool = True, want_funcs
     funcs.sort(key=lambda x: x[0])
     return classes, funcs
 
+def get_constants(mod: ModuleType) -> List[Tuple[str, Any]]:
+    """
+    Extract constants (variables with default values) from a module.
+    """
+    constants = []
+    for name, obj in mod.__dict__.items():
+        if not name.startswith("_") and not callable(obj) and not inspect.ismodule(obj):
+            constants.append((name, obj))
+    return constants
+
+def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_root: Optional[str], source_url_prefix: Optional[str]) -> str:
+    parts = []
+    title = f"# `{mod.__name__}`"
+    parts.append(title)
+    mod_ds = parse_docstring(inspect.getdoc(mod))
+    if mod_ds["short"] or mod_ds["long"]:
+        parts.append("")
+        if mod_ds["short"]:
+            parts.append(mod_ds["short"])
+        if mod_ds["long"]:
+            parts.append(mod_ds["long"])
+        parts.append("")
+
+    # Render constants
+    constants = get_constants(mod)
+    if constants:
+        parts.append("## Constants")
+        for name, value in constants:
+            value_str = repr(value)
+            if len(value_str) > 80:  # Truncate long values for readability
+                value_str = value_str[:77] + "..."
+            doc = inspect.getdoc(getattr(mod, name, None)) or ""
+            type_str = type_to_str(type(value))
+            parts.append(f"### `{name}`")
+            parts.append(f"```python\n{name}: {type_str} = {value_str}\n```")
+            if doc and not doc.startswith("dict() -> new empty dictionary"):
+                parts.append(doc)
+            parts.append("")
+
+    # Render classes and their subsections
+    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)
+    if classes:
+        for name, cls in classes:
+            parts.append(render_class(cls, include_inherited=include_inherited, verbose=verbose, repo_root=repo_root, source_url_prefix=source_url_prefix))
+
+    # Render functions
+    if funcs:
+        parts.append("## Functions")
+        for name, fn in funcs:
+            parts.append(render_function(name, fn, repo_root=repo_root, source_url_prefix=source_url_prefix))
+
+    return "\n".join(parts).strip() + "\n"
+
 def write_api_summary(all_module_names: List[str], outdir: Path, filename: str = "SUMMARY-API.md"):
+    """
+    Write a standalone API navigation file (does NOT overwrite the main SUMMARY.md).
+    Produces a bullet list headed by '* API Reference' with indentation based on
+    package depth. Each module maps to api/<dotted/path>.md.
+    """
     lines: List[str] = []
     lines.append("* API Reference")
     for modname in sorted(all_module_names):
-        depth = modname.count(".") + 1
+        depth = modname.count(".") + 1   # +1 because inside "API Reference"
         rel_md = f"api/{modname.replace('.', '/')}.md"
         lines.append("  " * depth + f"* [`{modname}`]({rel_md})")
     (outdir / filename).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate GitBook API docs from Python package.")
-    parser.add_argument("--package", default="alibi", help="Package name to document")
-    parser.add_argument("--outdir", default="docs-gb", help="Output directory")
-    parser.add_argument("--include-inherited", action="store_true", help="Include inherited members")
-    parser.add_argument("--include-private", action="store_true", help="Include private modules")
-    parser.add_argument("--exclude", nargs="*", default=[], help="Glob patterns to exclude modules")
-    parser.add_argument("--repo-root", help="Local repo root for computing source links")
-    parser.add_argument("--source-url-prefix", help="URL prefix for source links, e.g., https://github.com/SeldonIO/alibi/blob/main")
-    parser.add_argument("--prepend-path", nargs="*", default=[], help="Paths to prepend to sys.path")
-    parser.add_argument("--verbose", action="store_true", help="Verbose output")
+    parser = argparse.ArgumentParser(description="Generate GitBook-ready Markdown API docs for a Python package (e.g., alibi).")
+    parser.add_argument("--package", default="alibi", help="Top-level package import path (default: alibi).")
+    parser.add_argument("--outdir", default="docs-gb", help="Output directory for GitBook (default: docs-gb).")
+    parser.add_argument("--include-private", action="store_true", help="Include private modules (names starting with _).")
+    parser.add_argument("--include-inherited", action="store_true", help="Include inherited methods in class docs.")
+    parser.add_argument("--exclude", nargs="*", default=[], help="Glob patterns of modules to exclude (e.g. 'alibi.explainers._*').")
+    parser.add_argument("--verbose", action="store_true", help="Verbose logging.")
+    parser.add_argument("--repo-root", default=None, help="Local path to repo root (for source links) e.g., '.'.")
+    parser.add_argument("--source-url-prefix", default=None, help="URL prefix to repository files, e.g., https://github.com/SeldonIO/alibi/blob/main")
+    parser.add_argument("--add-sys-path", nargs="*", default=[], help="Prepend these paths to sys.path before importing the package (useful for local checkouts).")
+    parser.add_argument("--summary-api-filename", default="SUMMARY-API.md", help="Filename for the generated API nav (default: SUMMARY-API.md).")
     args = parser.parse_args()
 
-    for p in args.prepend_path:
-        sys.path.insert(0, str(Path(p).resolve()))
+    # Prepend sys.path entries before importing
+    for sp in args.add_sys_path:
+        if sp:
+            sys.path.insert(0, sp)
 
     outdir = Path(args.outdir)
     api_dir = outdir / "api"
     api_dir.mkdir(parents=True, exist_ok=True)
 
-    mods = walk_package(args.package, args.verbose)
-    written = []
-    for mod_name in mods:
-        if should_skip_module(mod_name, args.include_private, args.exclude):
-            debug(f"Skipping {mod_name}", args.verbose)
+    (outdir / "README.md").write_text(
+        f"# {args.package} API\n\nThis section contains API documentation generated automatically for `{args.package}`.\n\n",
+        encoding="utf-8",
+    )
+
+    all_mods = []
+    for modname in walk_package(args.package, verbose=args.verbose):
+        if should_skip_module(modname, include_private=args.include_private, exclude_globs=args.exclude):
+            debug(f"Skipping module (private/excluded): {modname}", args.verbose)
             continue
-        mod = import_module_safely(mod_name, args.verbose)
+        mod = import_module_safely(modname, verbose=args.verbose)
         if mod is None:
             continue
-        debug(f"Rendering {mod_name}", args.verbose)
-        content = render_module(mod, args.include_inherited, args.verbose, args.repo_root, args.source_url_prefix)
-        out_file = api_dir / f"{mod_name.replace('.', '/')}.md"
-        out_file.parent.mkdir(parents=True, exist_ok=True)
-        out_file.write_text(content, encoding="utf-8")
-        written.append(mod_name)
+        debug(f"Rendering module: {modname}", args.verbose)
+        md = render_module(mod, include_inherited=args.include_inherited, verbose=args.verbose, repo_root=args.repo_root, source_url_prefix=args.source_url_prefix)
+        file_path = api_dir / (modname.replace(".", "/") + ".md")
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(md, encoding="utf-8")
+        all_mods.append(modname)
 
-    write_api_summary(written, outdir)
-    print(f"Generated {len(written)} module docs in {api_dir}")
-    print(f"API summary written to {outdir / 'SUMMARY-API.md'}")
+    write_api_summary(all_mods, outdir, filename=args.summary_api_filename)
 
+    print(f"✅ Done. Wrote {len(all_mods)} module pages under: {api_dir}")
+    print(f"   API nav file at: {outdir / args.summary_api_filename}")
+    print("   Tip: Append the contents of this file into your existing SUMMARY.md where desired.")
+    
 if __name__ == "__main__":
     main()

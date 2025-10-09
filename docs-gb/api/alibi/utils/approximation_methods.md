@@ -1,4 +1,23 @@
 # `alibi.utils.approximation_methods`
+## Constants
+### `SUPPORTED_RIEMANN_METHODS`
+```python
+SUPPORTED_RIEMANN_METHODS: list = ['riemann_left', 'riemann_right', 'riemann_middle', 'riemann_trapezoid']
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
+### `SUPPORTED_METHODS`
+```python
+SUPPORTED_METHODS: list = ['riemann_left', 'riemann_right', 'riemann_middle', 'riemann_trapezoid', 'gau...
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
 ## `Riemann`
 
 _Inherits from:_ `Enum`
@@ -14,16 +33,9 @@ approximation_parameters(method: str) -> Tuple[Callable[[.[<class 'int'>]], List
 
 Retrieves parameters for the input approximation `method`.
 
-Parameters
-----------
-method
-    The name of the approximation method. Currently supported only: ``'riemann_*'`` and ``'gausslegendre``'.
-    Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_*'`` possible
-    values.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `method` | `str` |  |  |
+| `method` | `str` |  | The name of the approximation method. Currently supported only: ``'riemann_*'`` and ``'gausslegendre``'. Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_*'`` possible values. |
 
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`
@@ -43,18 +55,9 @@ Gauss Legendre quadrature rule for approximating the integrals was originally
 proposed by [Xue Feng and her intern Hauroun Habeeb]
 (https://research.fb.com/people/feng-xue/).
 
-Parameters
-----------
-n
-    The number of integration steps.
-
-Returns
--------
-2-element tuple consisting of
-
- - `step_sizes` : ``Callable`` - `step_sizes` takes the number of steps as an input argument and returns an      array of steps sizes which sum is smaller than or equal to one.
-
- - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the      multipliers/coefficients for the inputs of integrand in the range of [0, 1].
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `n` |  |  | The number of integration steps. |
 
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`
@@ -67,24 +70,10 @@ riemann_builders(method: alibi.utils.approximation_methods.Riemann = <Riemann.tr
 
 Step sizes are identical and alphas are scaled in [0, 1].
 
-Parameters
-----------
-n
-    The number of integration steps.
-method
-    Riemann method: ``Riemann.left`` | ``Riemann.right`` | ``Riemann.middle`` | ``Riemann.trapezoid``.
-
-Returns
--------
-2-element tuple consisting of
-
- - `step_sizes` :  ``Callable`` - `step_sizes` takes the number of steps as an input argument and returns an      array of steps sizes which sum is smaller than or equal to one.
-
- - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the      multipliers/coefficients for the inputs of integrand in the range of [0, 1].
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `method` | `alibi.utils.approximation_methods.Riemann` | `<Riemann.trapezoid: 4>` |  |
+| `method` | `alibi.utils.approximation_methods.Riemann` | `<Riemann.trapezoid: 4>` | Riemann method: ``Riemann.left`` | ``Riemann.right`` | ``Riemann.middle`` | ``Riemann.trapezoid``. |
+| `n` |  |  | The number of integration steps. |
 
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`

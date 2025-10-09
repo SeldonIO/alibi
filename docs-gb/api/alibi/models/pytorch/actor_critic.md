@@ -21,8 +21,8 @@ Actor(self, hidden_dim: int, output_dim: int) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `output_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `output_dim` | `int` |  | Output dimension |
 
 ### Methods
 
@@ -34,18 +34,9 @@ forward(x: torch.Tensor) -> torch.Tensor
 
 Forward pass
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-Continuous action.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -67,7 +58,7 @@ Critic(self, hidden_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
 
 ### Methods
 
@@ -79,18 +70,9 @@ forward(x: torch.Tensor) -> torch.Tensor
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-Critic value.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`

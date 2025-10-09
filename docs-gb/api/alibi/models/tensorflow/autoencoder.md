@@ -21,8 +21,8 @@ AE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  |  |
-| `decoder` | `keras.src.models.model.Model` |  |  |
+| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
+| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
 
 ### Methods
 
@@ -34,21 +34,10 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> Union[tensorflow.p
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-**kwargs
-    Other arguments passed to encoder/decoder `call` method.
-
-Returns
--------
-x_hat
-    Reconstruction of the input tensor.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `Union[tensorflow.python.framework.tensor.Tensor, List[tensorflow.python.framework.tensor.Tensor]]`
@@ -70,8 +59,8 @@ HeAE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.mode
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  |  |
-| `decoder` | `keras.src.models.model.Model` |  |  |
+| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
+| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
 
 ### Methods
 
@@ -83,14 +72,9 @@ build(input_shape: Tuple[int, .Ellipsis]) -> None
 
 Build method.
 
-Parameters
-----------
-input_shape
-    Tensor's input shape.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `input_shape` | `Tuple[int, .Ellipsis]` |  |  |
+| `input_shape` | `Tuple[int, .Ellipsis]` |  | Tensor's input shape. |
 
 **Returns**
 - Type: `None`
@@ -103,20 +87,10 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> List[tensorflow.py
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-**kwargs
-    Other arguments passed to the encoder/decoder.
-
-Returns
---------
-List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the         numerical features if they exist, and the rest of the elements correspond to each categorical feature.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`

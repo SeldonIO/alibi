@@ -20,8 +20,8 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int])
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `output_dims` | `List[int]` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `output_dims` | `List[int]` |  | List of output dimensions. |
 
 ### Methods
 
@@ -33,18 +33,9 @@ forward(x: torch.Tensor) -> List[torch.Tensor]
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the         numerical features if they exist, and the rest of the elements correspond to each categorical feature.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `List[torch.Tensor]`
@@ -67,8 +58,8 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `latent_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -80,18 +71,9 @@ forward(x: torch.Tensor) -> torch.Tensor
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-Encoding representation having each component in the interval [-1, 1]
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -114,7 +96,7 @@ MNISTClassifier(self, output_dim: int) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `output_dim` | `int` |  |  |
+| `output_dim` | `int` |  | Output dimension. |
 
 ### Methods
 
@@ -126,18 +108,9 @@ forward(x: torch.Tensor) -> torch.Tensor
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-Classification logits.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -161,7 +134,7 @@ MNISTDecoder(self, latent_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `latent_dim` | `int` |  |  |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -173,18 +146,9 @@ forward(x: torch.Tensor) -> torch.Tensor
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-Decoded input having each component in the interval [0, 1].
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -209,7 +173,7 @@ MNISTEncoder(self, latent_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `latent_dim` | `int` |  |  |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -221,18 +185,9 @@ forward(x: torch.Tensor) -> torch.Tensor
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-Encoding representation having each component in the interval [-1, 1]
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`

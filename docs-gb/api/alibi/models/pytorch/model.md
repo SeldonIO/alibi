@@ -27,24 +27,12 @@ Compiles a model by setting the optimizer and the loss functions, loss weights a
 
 the training of the model.
 
-Parameters
-----------
-optimizer
-    Optimizer to be used.
-loss
-    Loss function to be used. Can be a list of the loss function which will be weighted and summed up to
-    compute the total loss.
-loss_weights
-    Weights corresponding to each loss function. Only used if the `loss` argument is a  list.
-metrics
-    Metrics used to monitor the training process.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `optimizer` | `torch.optim.optimizer.Optimizer` |  |  |
-| `loss` | `Union[Callable, List[Callable]]` |  |  |
-| `loss_weights` | `Optional[List[float]]` | `None` |  |
-| `metrics` | `Optional[List[alibi.models.pytorch.metrics.Metric]]` | `None` |  |
+| `optimizer` | `torch.optim.optimizer.Optimizer` |  | Optimizer to be used. |
+| `loss` | `Union[Callable, List[Callable]]` |  | Loss function to be used. Can be a list of the loss function which will be weighted and summed up to compute the total loss. |
+| `loss_weights` | `Optional[List[float]]` | `None` | Weights corresponding to each loss function. Only used if the `loss` argument is a  list. |
+| `metrics` | `Optional[List[alibi.models.pytorch.metrics.Metric]]` | `None` | Metrics used to monitor the training process. |
 
 #### `compute_loss`
 
@@ -54,21 +42,10 @@ compute_loss(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[torc
 
 Computes the loss given the prediction labels and the true labels.
 
-Parameters
----------
-y_pred
-    Prediction labels.
-y_true
-    True labels.
-
-Returns
--------
-A tuple consisting of the total loss computed as a weighted sum of individual losses and a dictionary         of individual losses used of logging.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
-| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Prediction labels. |
+| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  | True labels. |
 
 **Returns**
 - Type: `Tuple[torch.Tensor, Dict[str, float]]`
@@ -81,17 +58,10 @@ compute_metrics(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[t
 
 Computes the metrics given the prediction labels and the true labels.
 
-Parameters
-----------
-y_pred
-    Prediction labels.
-y_true
-    True labels.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
-| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Prediction labels. |
+| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  | True labels. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -104,18 +74,9 @@ evaluate(testloader: torch.utils.data.dataloader.DataLoader) -> Dict[str, float]
 
 Evaluation function. The function reports the evaluation metrics used for monitoring the training loop.
 
-Parameters
-----------
-testloader
-    Test dataloader.
-
-Returns
--------
-Evaluation metrics.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `testloader` | `torch.utils.data.dataloader.DataLoader` |  |  |
+| `testloader` | `torch.utils.data.dataloader.DataLoader` |  | Test dataloader. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -128,21 +89,10 @@ fit(trainloader: torch.utils.data.dataloader.DataLoader, epochs: int) -> Dict[st
 
 Fit method. Equivalent of a training loop.
 
-Parameters
-----------
-trainloader
-    Training data loader.
-epochs
-    Number of epochs to train the model.
-
-Returns
--------
-Final epoch monitoring metrics.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `trainloader` | `torch.utils.data.dataloader.DataLoader` |  |  |
-| `epochs` | `int` |  |  |
+| `trainloader` | `torch.utils.data.dataloader.DataLoader` |  | Training data loader. |
+| `epochs` | `int` |  | Number of epochs to train the model. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -185,17 +135,10 @@ test_step(x: torch.Tensor, y: Union[torch.Tensor, List[torch.Tensor]])
 
 Performs a test step.
 
-Parameters
-----------
-x
-    Input tensor.
-y
-    Label tensor.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
-| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
+| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Label tensor. |
 
 #### `train_step`
 
@@ -205,17 +148,10 @@ train_step(x: torch.Tensor, y: Union[torch.Tensor, List[torch.Tensor]]) -> Dict[
 
 Performs a train step.
 
-Parameters
-----------
-x
-    Input tensor.
-y
-    Label tensor.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
-| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
+| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Label tensor. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -228,14 +164,7 @@ validate_prediction_labels(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_tr
 
 Validates the loss functions, loss weights, training labels and prediction labels.
 
-Parameters
----------
-y_pred
-    Prediction labels.
-y_true
-    True labels.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
-| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Prediction labels. |
+| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  | True labels. |

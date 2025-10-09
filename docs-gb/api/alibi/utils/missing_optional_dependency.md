@@ -6,6 +6,18 @@ alibi that is not usable due to missing optional dependencies this code is used 
 with an object that throws an error on use. This way we avoid errors at import time that prevent the user using
 functionality independent of the missing dependency.
 
+## Constants
+### `err_msg_template`
+```python
+err_msg_template: string.Template = <string.Template object at 0x17686c100>
+```
+A string class for supporting $-substitutions.
+
+### `ERROR_TYPES`
+```python
+ERROR_TYPES: dict = {'ray': 'ray', 'tensorflow': 'tensorflow', 'torch': 'torch', 'pytorch': 'torc...
+```
+
 ## `MissingDependency`
 
 Missing Dependency Class
@@ -21,9 +33,9 @@ MissingDependency(self, object_name: str, err: Union[ModuleNotFoundError, Import
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `object_name` | `str` |  |  |
-| `err` | `Union[ModuleNotFoundError, ImportError]` |  |  |
-| `missing_dependency` | `str` | `'all'` |  |
+| `object_name` | `str` |  | Name of object we are replacing |
+| `err` | `Union[ModuleNotFoundError, ImportError]` |  | Error to be raised when the class is initialized or used |
+| `missing_dependency` | `str` | `'all'` | Name of missing dependency required for object |
 
 ### Properties
 
@@ -44,23 +56,10 @@ Note: This function is used to import modules that depend on optional dependenci
 import functionality its return type has to be `Any`. Using objects imported with this function can lead to
 misspecification of types as `Any` when the developer intended to be more restrictive.
 
-Parameters
-----------
-module_name
-    The module to import
-names
-    The names to import from the module. If None, all names are imported.
-
-Returns
--------
-The module or named objects within the modules if names is not None. If the import fails due to a
-ModuleNotFoundError or ImportError then the requested module or named objects are replaced with instances of
-the MissingDependency class above.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `module_name` | `str` |  |  |
-| `names` | `Optional[List[str]]` | `None` |  |
+| `module_name` | `str` |  | The module to import |
+| `names` | `Optional[List[str]]` | `None` | The names to import from the module. If None, all names are imported. |
 
 **Returns**
 - Type: `typing.Any`

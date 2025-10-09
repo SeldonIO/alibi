@@ -20,8 +20,9 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int], **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
 | `output_dims` | `List[int]` |  |  |
+| `output_dim` |  |  | List of output dimensions. |
 
 ### Methods
 
@@ -33,20 +34,10 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> List[tensorflow.py
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-**kwargs
-    Other arguments. Not used.
-
-Returns
--------
-List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the         numerical features if they exist, and the rest of the elements correspond to each categorical feature.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`
@@ -69,8 +60,8 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `latent_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -82,20 +73,10 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-**kwargs
-    Other arguments.
-
-Returns
--------
-Encoding representation having each component in the interval [-1, 1].
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -118,7 +99,7 @@ MNISTClassifier(self, output_dim: int = 10, **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `output_dim` | `int` | `10` |  |
+| `output_dim` | `int` | `10` | Output dimension |
 
 ### Methods
 
@@ -130,23 +111,11 @@ call(x: tensorflow.python.framework.tensor.Tensor, training: bool = True, kwargs
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-training
-    Training flag.
-**kwargs
-    Other arguments. Not used.
-
-Returns
--------
-Classification logits.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
-| `training` | `bool` | `True` |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `training` | `bool` | `True` | Training flag. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -177,20 +146,10 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor
-**kwargs
-    Other arguments. Not used.
-
-Returns
--------
-Decoded input having each component in the interval [0, 1].
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -215,7 +174,7 @@ MNISTEncoder(self, latent_dim: int, **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `latent_dim` | `int` |  |  |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -227,20 +186,10 @@ call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-**kwargs
-    Other arguments. Not used.
-
-Returns
--------
-Encoding representation having each component in the interval [-1, 1]
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`

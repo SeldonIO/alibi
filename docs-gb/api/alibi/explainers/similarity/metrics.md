@@ -11,24 +11,11 @@ Computes the influence of training instances `Y` to test instances `X`. This is 
 (:math:`X^T Y/\|Y\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details. Each of `X` and
 `Y` should have a leading batch dimension of size at least 1.
 
-Parameters
-----------
-X
-    Matrix of vectors.
-Y
-    Matrix of vectors.
-eps
-    Numerical stability.
-
-Returns
--------
-    Matrix of asymmetric dot product similarity values between the vector(s) in X and vectors in Y.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y` | `numpy.ndarray` |  |  |
-| `eps` | `float` | `1e-07` |  |
+| `X` | `numpy.ndarray` |  | Matrix of vectors. |
+| `Y` | `numpy.ndarray` |  | Matrix of vectors. |
+| `eps` | `float` | `1e-07` | Numerical stability. |
 
 **Returns**
 - Type: `Union[float, numpy.ndarray]`
@@ -43,24 +30,11 @@ Computes the cosine between the vector(s) in X and vector Y. (:math:`X^T Y/\|X\|
 
 should have a leading batch dimension of size at least 1.
 
-Parameters
-----------
-X
-    Matrix of vectors.
-Y
-    Matrix of vectors.
-eps
-    Numerical stability.
-
-Returns
--------
-    Matrix of cosine similarities between the vector(s) in X and vectors in Y.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y` | `numpy.ndarray` |  |  |
-| `eps` | `float` | `1e-07` |  |
+| `X` | `numpy.ndarray` |  | Matrix of vectors. |
+| `Y` | `numpy.ndarray` |  | Matrix of vectors. |
+| `eps` | `float` | `1e-07` | Numerical stability. |
 
 **Returns**
 - Type: `Union[float, numpy.ndarray]`
@@ -75,21 +49,10 @@ Performs a dot product between the vector(s) in X and vector Y. (:math:`X^T Y = 
 
 `Y` should have a leading batch dimension of size at least 1.
 
-Parameters
-----------
-X
-    Matrix of vectors.
-Y
-    Matrix of vectors.
-
-Returns
--------
-    Matrix of dot products between the vector(s) in X and vectors in Y.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | Matrix of vectors. |
+| `Y` | `numpy.ndarray` |  | Matrix of vectors. |
 
 **Returns**
 - Type: `Union[float, numpy.ndarray]`

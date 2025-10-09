@@ -1,4 +1,49 @@
 # `alibi.datasets.default`
+## Constants
+### `logger`
+```python
+logger: logging.Logger = <Logger alibi.datasets.default (WARNING)>
+```
+Instances of the Logger class represent a single logging channel. A
+"logging channel" indicates an area of an application. Exactly how an
+"area" is defined is up to the application developer. Since an
+application can have any number of areas, logging channels are identified
+by a unique string. Application areas can be nested (e.g. an area
+of "input processing" might include sub-areas "read CSV files", "read
+XLS files" and "read Gnumeric files"). To cater for this natural nesting,
+channel names are organized into a namespace hierarchy where levels are
+separated by periods, much like the Java or Python package namespace. So
+in the instance given above, channel names might be "input" for the upper
+level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
+There is no arbitrary limit to the depth of nesting.
+
+### `ADULT_URLS`
+```python
+ADULT_URLS: list = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data', 'https://...
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
+### `MOVIESENTIMENT_URLS`
+```python
+MOVIESENTIMENT_URLS: list = ['https://storage.googleapis.com/seldon-datasets/sentence_polarity_v1/rt-pola...
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
+### `IMAGENET_URLS`
+```python
+IMAGENET_URLS: list = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.tar.gz']
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
 ## Functions
 ### `fetch_adult`
 
@@ -10,28 +55,11 @@ Downloads and pre-processes 'adult' dataset.
 
 More info: http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/
 
-Parameters
-----------
-features_drop
-    List of features to be dropped from dataset, by default drops ``["fnlwgt", "Education-Num"]``.
-return_X_y
-    If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object.
-url_id
-    Index specifying which URL to use for downloading.
-
-Returns
--------
-Bunch
-    Dataset, labels, a list of features and a dictionary containing a list with the potential categories
-    for each categorical feature where the key refers to the feature column.
-(data, target)
-    Tuple if ``return_X_y=True``
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `features_drop` | `Optional[list]` | `None` |  |
-| `return_X_y` | `bool` | `False` |  |
-| `url_id` | `int` | `0` |  |
+| `features_drop` | `Optional[list]` | `None` | List of features to be dropped from dataset, by default drops ``["fnlwgt", "Education-Num"]``. |
+| `return_X_y` | `bool` | `False` | If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object. |
+| `url_id` | `int` | `0` | Index specifying which URL to use for downloading. |
 
 **Returns**
 - Type: `Union[alibi.utils.data.Bunch, Tuple[numpy.ndarray, numpy.ndarray]]`
@@ -77,23 +105,9 @@ The train set contains 1000 random samples, 100 for each of the following 10 sel
 
 The test set contains 50 random samples, 5 for each of the classes above.
 
-Parameters
-----------
-url_id
-    Index specifying which URL to use for downloading.
-
-Returns
--------
-Dictionary with the following keys:
-
-    * trainset - train set tuple (X_train, y_train)
-    * testset - test set tuple (X_test, y_test)
-    * int_to_str_labels - map from target to target name
-    * str_to_int_labels -  map from target name to target
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `url_id` | `int` | `0` |  |
+| `url_id` | `int` | `0` | Index specifying which URL to use for downloading. |
 
 **Returns**
 - Type: `Dict`
@@ -106,24 +120,10 @@ fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[alibi.
 
 The movie review dataset, equally split between negative and positive reviews.
 
-Parameters
-----------
-return_X_y
-    If ``True``, return features `X` and labels `y` as `Python` lists. If ``False`` return a `Bunch` object.
-url_id
-    Index specifying which URL to use for downloading
-
-Returns
--------
-Bunch
-    Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
-(data, target)
-    Tuple if ``return_X_y=True``.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `return_X_y` | `bool` | `False` |  |
-| `url_id` | `int` | `0` |  |
+| `return_X_y` | `bool` | `False` | If ``True``, return features `X` and labels `y` as `Python` lists. If ``False`` return a `Bunch` object. |
+| `url_id` | `int` | `0` | Index specifying which URL to use for downloading |
 
 **Returns**
 - Type: `Union[alibi.utils.data.Bunch, Tuple[list, list]]`
@@ -139,25 +139,10 @@ A small sample of Imagenet-like public domain images of cats used primarily for 
 The images were hand-collected using flickr.com by searching for various cat types, filtered by images
 in the public domain.
 
-Parameters
-----------
-target_size
-    Size of the returned images, used to crop images for a specified model input size.
-return_X_y
-    If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object
-
-Returns
--------
-Bunch
-    Bunch object with fields 'data', 'target' and 'target_names'. Both `targets` and `target_names` are taken from
-    the original Imagenet.
-(data, target)
-    Tuple if ``return_X_y=True``.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `target_size` | `tuple` | `(299, 299)` |  |
-| `return_X_y` | `bool` | `False` |  |
+| `target_size` | `tuple` | `(299, 299)` | Size of the returned images, used to crop images for a specified model input size. |
+| `return_X_y` | `bool` | `False` | If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object |
 
 **Returns**
 - Type: `Union[alibi.utils.data.Bunch, Tuple[numpy.ndarray, numpy.ndarray]]`

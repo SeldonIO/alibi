@@ -21,8 +21,8 @@ AE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.modu
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
+| `encoder` | `torch.nn.modules.module.Module` |  | Encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Decoder network. |
 
 ### Methods
 
@@ -34,19 +34,9 @@ forward(x: torch.Tensor) -> Union[torch.Tensor, List[torch.Tensor]]
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-x_hat
-    Reconstruction of the input tensor.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `Union[torch.Tensor, List[torch.Tensor]]`
@@ -68,8 +58,8 @@ HeAE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.mo
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
+| `encoder` | `torch.nn.modules.module.Module` |  | Encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Decoder network. |
 
 ### Methods
 
@@ -81,18 +71,9 @@ forward(x: torch.Tensor) -> List[torch.Tensor]
 
 Forward pass.
 
-Parameters
-----------
-x
-    Input tensor.
-
-Returns
--------
-List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the         numerical features if they exist, and the rest of the elements correspond to each categorical feature.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `List[torch.Tensor]`

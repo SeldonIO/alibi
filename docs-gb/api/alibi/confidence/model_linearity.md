@@ -44,12 +44,6 @@ LinearityMeasure(self, method: str = 'grid', epsilon: float = 0.04, nb_samples: 
 fit(X_train: numpy.ndarray) -> None
 ```
 
-Parameters
-
-----------
-X_train
-    Training set.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X_train` | `numpy.ndarray` |  | Training set. |
@@ -62,14 +56,6 @@ X_train
 ```python
 score(predict_fn: Callable, x: numpy.ndarray) -> numpy.ndarray
 ```
-
-Parameters
-
-----------
-predict_fn
-    Prediction function.
-x
-    Instance of interest.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

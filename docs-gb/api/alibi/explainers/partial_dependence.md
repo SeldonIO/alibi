@@ -38,7 +38,6 @@ Enumeration of supported kind.
 _Inherits from:_ `PartialDependenceBase`, `Explainer`, `ABC`, `Base`
 
 Black-box implementation of partial dependence for tabular datasets.
-
 Supports multiple feature interactions.
 
 ### Constructor
@@ -51,10 +50,9 @@ PartialDependence(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], fea
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]` |  | A prediction function which receives as input a `numpy` array of size `N x F` and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input instances, `F` is the number of features and `T` is the number of targets. |
 | `feature_names` | `Optional[List[str]]` | `None` | A list of feature names used for displaying results. |
-| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: |
+| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: category_map = {0: ["married", "divorced"], 3: ["high school diploma", "master's degree"]} |
 | `target_names` | `Optional[List[str]]` | `None` | A list of target/output names used for displaying results. |
 | `verbose` | `bool` | `False` | Whether to print the progress of the explainer. |
-| `category_map` |  |  |  |
 
 ### Methods
 
@@ -90,10 +88,9 @@ PartialDependenceBase(self, predictor: Union[sklearn.base.BaseEstimator, Callabl
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Union[sklearn.base.BaseEstimator, Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]]` |  | A `sklearn` estimator or a prediction function which receives as input a `numpy` array of size `N x F` and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input instances, `F` is the number of features and `T` is the number of targets. |
 | `feature_names` | `Optional[List[str]]` | `None` | A list of feature names used for displaying results. |
-| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: |
+| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: category_map = {0: ["married", "divorced"], 3: ["high school diploma", "master's degree"]} |
 | `target_names` | `Optional[List[str]]` | `None` | A list of target/output names used for displaying results. |
 | `verbose` | `bool` | `False` | Whether to print the progress of the explainer. |
-| `category_map` |  |  |  |
 
 ### Methods
 
@@ -102,10 +99,6 @@ PartialDependenceBase(self, predictor: Union[sklearn.base.BaseEstimator, Callabl
 ```python
 explain(X: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, int]]]] = None, kind: Literal[average, individual, both] = 'average', percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation
 ```
-
-Calculates the partial dependence for each feature and/or tuples of features with respect to the all targets
-
-and the reference dataset `X`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -125,8 +118,6 @@ and the reference dataset `X`.
 reset_predictor(predictor: Union[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray], sklearn.base.BaseEstimator]) -> None
 ```
 
-Resets the predictor function or tree-based `sklearn` estimator.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Union[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray], sklearn.base.BaseEstimator]` |  | New predictor function or tree-based `sklearn` estimator. |
@@ -139,7 +130,6 @@ Resets the predictor function or tree-based `sklearn` estimator.
 _Inherits from:_ `PartialDependenceBase`, `Explainer`, `ABC`, `Base`
 
 Tree-based model `sklearn`  implementation of the partial dependence for tabular datasets.
-
 Supports multiple feature interactions. This method is faster than the general black-box implementation
 but is only supported by some tree-based estimators. The computation is based on a weighted tree traversal.
 For more details on the computation, check the `sklearn documentation page`_. The supported `sklearn`
@@ -159,10 +149,9 @@ TreePartialDependence(self, predictor: sklearn.base.BaseEstimator, feature_names
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `sklearn.base.BaseEstimator` |  | A tree-based `sklearn` estimator. |
 | `feature_names` | `Optional[List[str]]` | `None` | A list of feature names used for displaying results. |
-| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: |
+| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: category_map = {0: ["married", "divorced"], 3: ["high school diploma", "master's degree"]} |
 | `target_names` | `Optional[List[str]]` | `None` | A list of target/output names used for displaying results. |
 | `verbose` | `bool` | `False` | Whether to print the progress of the explainer. |
-| `category_map` |  |  |  |
 
 ### Methods
 
@@ -171,10 +160,6 @@ TreePartialDependence(self, predictor: sklearn.base.BaseEstimator, feature_names
 ```python
 explain(X: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, int]]]] = None, percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation
 ```
-
-Calculates the partial dependence for each feature and/or tuples of features with respect to the all targets
-
-and the reference dataset `X`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -202,8 +187,8 @@ Plot partial dependence curves on matplotlib axes.
 | `features` | `Union[List[int], Literal[all]]` | `'all'` | A list of features entries in the `exp.data['feature_names']` to plot the partial dependence curves for, or ``'all'`` to plot all the explained feature or tuples of features. This includes tuples of features. For example, if ``exp.data['feature_names'] = ['temp', 'hum', ('temp', 'windspeed')]`` and we want to plot the partial dependence only for the ``'temp'`` and ``('temp', 'windspeed')``, then we would set ``features=[0, 2]``. Defaults to ``'all'``. |
 | `target` | `Union[str, int]` | `0` | The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers denoting target index or strings denoting entries in `exp.meta['params']['target_names']`. |
 | `n_cols` | `int` | `3` | Number of columns to organize the resulting plot into. |
-| `n_ice` | `Union[Literal[all], int, List[int]]` | `100` | Number of ICE plots to be displayed. Can be |
-| `center` | `bool` | `False` | Boolean flag to center the individual conditional expectation (ICE) curves. As mentioned in `Goldstein et al. (2014)`_, the heterogeneity in the model can be difficult to discern when the intercepts of the ICE curves cover a wide range. Centering the ICE curves removes the level effects and helps to visualise the heterogeneous effect. |
+| `n_ice` | `Union[Literal[all], int, List[int]]` | `100` | Number of ICE plots to be displayed. Can be - a string taking the value ``'all'`` to display the ICE curves for every instance in the reference dataset. - an integer for which `n_ice` instances from the reference dataset will be sampled uniformly at random to          display their ICE curves. - a list of integers, where each integer represents an index of an instance in the reference dataset to          display their ICE curves. |
+| `center` | `bool` | `False` | Boolean flag to center the individual conditional expectation (ICE) curves. As mentioned in `Goldstein et al. (2014)`_, the heterogeneity in the model can be difficult to discern when the intercepts of the ICE curves cover a wide range. Centering the ICE curves removes the level effects and helps to visualise the heterogeneous effect. .. _Goldstein et al. (2014): https://arxiv.org/abs/1309.6392 |
 | `pd_limits` | `Optional[Tuple[float, float]]` | `None` | Minimum and maximum y-limits for all the one-way PD plots. If ``None`` will be automatically inferred. |
 | `levels` | `int` | `8` | Number of levels in the contour plot. |
 | `ax` | `Union[ForwardRef('plt.Axes'), numpy.ndarray, None]` | `None` | A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on. |
@@ -215,8 +200,7 @@ Plot partial dependence curves on matplotlib axes.
 | `pd_num_num_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.pyplot.contourf`_ function when plotting the PD for two numerical features. |
 | `pd_num_cat_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the PD for a numerical and a categorical feature. |
 | `pd_cat_cat_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the :py:meth:`alibi.utils.visualization.heatmap` functon when plotting the PD for two categorical features. |
-| `fig_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.figure.set`_ function. |
-| `https` | `//arxiv.org/abs/1309.6392` |  |  |
+| `fig_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.figure.set`_ function. .. _matplotlib.pyplot.plot: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html .. _matplotlib.pyplot.contourf: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.contourf.html .. _matplotlib.figure.set: https://matplotlib.org/stable/api/figure_api.html |
 
 **Returns**
 - Type: `np.ndarray`

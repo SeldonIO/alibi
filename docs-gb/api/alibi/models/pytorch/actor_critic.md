@@ -9,7 +9,6 @@ broader use-cases.
 _Inherits from:_ `Module`
 
 Actor network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
-
 The model is used in Counterfactual with Reinforcement Learning (CFRL) for both data modalities (images and
 tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
 
@@ -32,8 +31,6 @@ Actor(self, hidden_dim: int, output_dim: int) -> None
 forward(x: torch.Tensor) -> torch.Tensor
 ```
 
-Forward pass
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `torch.Tensor` |  | Input tensor. |
@@ -46,7 +43,6 @@ Forward pass
 _Inherits from:_ `Module`
 
 Critic network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
-
 The model is used in Counterfactual with Reinforcement Learning (CFRL) for both data modalities (images and
 tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
 
@@ -67,8 +63,6 @@ Critic(self, hidden_dim: int)
 ```python
 forward(x: torch.Tensor) -> torch.Tensor
 ```
-
-Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

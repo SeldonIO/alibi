@@ -23,10 +23,6 @@ Model(self, **kwargs)
 compile(optimizer: torch.optim.optimizer.Optimizer, loss: Union[Callable, List[Callable]], loss_weights: Optional[List[float]] = None, metrics: Optional[List[alibi.models.pytorch.metrics.Metric]] = None)
 ```
 
-Compiles a model by setting the optimizer and the loss functions, loss weights and metrics to monitor
-
-the training of the model.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `optimizer` | `torch.optim.optimizer.Optimizer` |  | Optimizer to be used. |
@@ -39,8 +35,6 @@ the training of the model.
 ```python
 compute_loss(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Tuple[torch.Tensor, Dict[str, float]]
 ```
-
-Computes the loss given the prediction labels and the true labels.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -56,8 +50,6 @@ Computes the loss given the prediction labels and the true labels.
 compute_metrics(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Dict[str, float]
 ```
 
-Computes the metrics given the prediction labels and the true labels.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Prediction labels. |
@@ -72,8 +64,6 @@ Computes the metrics given the prediction labels and the true labels.
 evaluate(testloader: torch.utils.data.dataloader.DataLoader) -> Dict[str, float]
 ```
 
-Evaluation function. The function reports the evaluation metrics used for monitoring the training loop.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `testloader` | `torch.utils.data.dataloader.DataLoader` |  | Test dataloader. |
@@ -86,8 +76,6 @@ Evaluation function. The function reports the evaluation metrics used for monito
 ```python
 fit(trainloader: torch.utils.data.dataloader.DataLoader, epochs: int) -> Dict[str, float]
 ```
-
-Fit method. Equivalent of a training loop.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -133,8 +121,6 @@ Save the weight of the current model.
 test_step(x: torch.Tensor, y: Union[torch.Tensor, List[torch.Tensor]])
 ```
 
-Performs a test step.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `torch.Tensor` |  | Input tensor. |
@@ -145,8 +131,6 @@ Performs a test step.
 ```python
 train_step(x: torch.Tensor, y: Union[torch.Tensor, List[torch.Tensor]]) -> Dict[str, float]
 ```
-
-Performs a train step.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -161,8 +145,6 @@ Performs a train step.
 ```python
 validate_prediction_labels(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[torch.Tensor, List[torch.Tensor]])
 ```
-
-Validates the loss functions, loss weights, training labels and prediction labels.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

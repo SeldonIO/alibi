@@ -54,10 +54,6 @@ IntegratedGradients(self, model: keras.src.models.model.Model, layer: Union[Call
 explain(X: Union[numpy.ndarray, List[numpy.ndarray]], forward_kwargs: Optional[dict] = None, baselines: Union[int, float, numpy.ndarray, List[int], List[float], List[numpy.ndarray], None] = None, target: Union[int, list, numpy.ndarray, None] = None, attribute_to_layer_inputs: bool = False) -> alibi.api.interfaces.Explanation
 ```
 
-Calculates the attributions for each input feature or element of layer and
-
-returns an Explanation object.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[numpy.ndarray, List[numpy.ndarray]]` |  | Instance for which integrated gradients attribution are computed. |
@@ -74,8 +70,6 @@ returns an Explanation object.
 ```python
 reset_predictor(predictor: keras.src.models.model.Model) -> None
 ```
-
-Resets the predictor model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

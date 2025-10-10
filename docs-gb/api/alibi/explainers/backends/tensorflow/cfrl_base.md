@@ -65,7 +65,7 @@ Add noise to the counterfactual embedding.
 | `act_high` | `float` |  | Noise upper bound. |
 | `step` | `int` |  | Training step. |
 | `exploration_steps` | `int` |  | Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding is sampled uniformly at random. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -99,7 +99,7 @@ Constructs a `tensorflow` data generator.
 | `conditional_func` | `Callable` |  | Conditional function generator. Given an preprocessed input array, the functions generates a conditional array. |
 | `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
 | `shuffle` | `bool` | `True` | Whether to shuffle the dataset each epoch. ``True`` by default. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 ### `decode`
 
@@ -113,7 +113,7 @@ Decodes an embedding tensor.
 | ---- | ---- | ------- | ----------- |
 | `Z` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  | Embedding tensor to be decoded. |
 | `decoder` | `keras.src.models.model.Model` |  | Pretrained decoder network. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 ### `encode`
 
@@ -127,7 +127,7 @@ Encodes the input tensor.
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  | Input to be encoded. |
 | `encoder` | `keras.src.models.model.Model` |  | Pretrained encoder network. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -147,7 +147,7 @@ Generates counterfactual embedding.
 | `Y_t` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Target counterfactual classification label. |
 | `C` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor, None]` |  | Conditional tensor. |
 | `actor` | `keras.src.models.model.Model` |  | Actor network. The model generates the counterfactual embedding. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -216,7 +216,7 @@ Initialize actor and critic layers by passing a dummy zero tensor.
 | `Y_m` |  |  | Input classification label. |
 | `Y_t` |  |  | Target counterfactual classification label. |
 | `C` |  |  | Conditional tensor. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 ### `initialize_optimizer`
 
@@ -248,7 +248,7 @@ Initializes the actor and critic optimizers.
 | `optimizer_critic` |  |  | Critic optimizer to be initialized. |
 | `actor` |  |  | Actor model to be optimized. |
 | `critic` |  |  | Critic model to be optimized. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `None`
@@ -338,7 +338,7 @@ Converts tensor to `tf.Tensor`.
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Input array/tensor to be converted. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `Optional[tensorflow.python.framework.tensor.Tensor]`

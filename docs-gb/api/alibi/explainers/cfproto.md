@@ -69,8 +69,6 @@ CounterfactualProto(self, predict: Union[Callable[[numpy.ndarray], numpy.ndarray
 attack(X: numpy.ndarray, Y: numpy.ndarray, target_class: Optional[list] = None, k: Optional[int] = None, k_type: str = 'mean', threshold: float = 0.0, verbose: bool = False, print_every: int = 100, log_every: int = 100) -> Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]
 ```
 
-Find a counterfactual (CF) for instance `X` using a fast iterative shrinkage-thresholding algorithm (FISTA).
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | Instance to attack. |
@@ -91,8 +89,6 @@ Find a counterfactual (CF) for instance `X` using a fast iterative shrinkage-thr
 ```python
 explain(X: numpy.ndarray, Y: Optional[numpy.ndarray] = None, target_class: Optional[list] = None, k: Optional[int] = None, k_type: str = 'mean', threshold: float = 0.0, verbose: bool = False, print_every: int = 100, log_every: int = 100) -> alibi.api.interfaces.Explanation
 ```
-
-Explain instance and return counterfactual with metadata.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -115,10 +111,6 @@ Explain instance and return counterfactual with metadata.
 fit(train_data: numpy.ndarray, trustscore_kwargs: Optional[dict] = None, d_type: str = 'abdm', w: Optional[float] = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False, smooth: float = 1.0, center: bool = True, update_feature_range: bool = True) -> alibi.explainers.cfproto.CounterfactualProto
 ```
 
-Get prototypes for each class using the encoder or k-d trees.
-
-The prototypes are used for the encoder loss term or to calculate the optional trust scores.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `train_data` | `numpy.ndarray` |  | Representative sample from the training data. |
@@ -140,10 +132,6 @@ The prototypes are used for the encoder loss term or to calculate the optional t
 get_gradients(X: numpy.ndarray, Y: numpy.ndarray, grads_shape: tuple, cat_vars_ord: dict) -> numpy.ndarray
 ```
 
-Compute numerical gradients of the attack loss term:
-
-`dL/dx = (dL/dP)*(dP/dx)` with `L = loss_attack_s; P = predict; x = adv_s`.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | Instance around which gradient is evaluated. |
@@ -160,8 +148,6 @@ Compute numerical gradients of the attack loss term:
 loss_fn(pred_proba: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
 ```
 
-Compute the attack loss.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `pred_proba` | `numpy.ndarray` |  | Prediction probabilities of an instance. |
@@ -176,8 +162,6 @@ Compute the attack loss.
 reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> None
 ```
 
-Resets the predictor function/model.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Union[Callable, keras.src.models.model.Model]` |  | New predictor function/model. |
@@ -190,18 +174,6 @@ Resets the predictor function/model.
 ```python
 score(X: numpy.ndarray, adv_class: int, orig_class: int, eps: float = 1e-10) -> float
 ```
-
-Parameters
-
-----------
-X
-    Instance to encode and calculate distance metrics for.
-adv_class
-    Predicted class on the perturbed instance.
-orig_class
-    Predicted class on the original instance.
-eps
-    Small number to avoid dividing by 0.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

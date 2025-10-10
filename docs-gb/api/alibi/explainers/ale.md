@@ -66,8 +66,6 @@ ALE(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], feature_names: Op
 explain(X: numpy.ndarray, features: Optional[List[int]] = None, min_bin_points: int = 4, grid_points: Optional[Dict[int, numpy.ndarray]] = None) -> alibi.api.interfaces.Explanation
 ```
 
-Calculate the ALE curves for each feature with respect to the dataset `X`.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | An `N x F` tabular dataset used to calculate the ALE curves. This is typically the training dataset or a representative sample. |
@@ -84,8 +82,6 @@ Calculate the ALE curves for each feature with respect to the dataset `X`.
 reset_predictor(predictor: Callable) -> None
 ```
 
-Resets the predictor function.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Callable` |  | New predictor function. |
@@ -101,7 +97,6 @@ adaptive_grid(values: numpy.ndarray, min_bin_points: int = 1) -> Tuple[numpy.nda
 ```
 
 Find the optimal number of quantiles for the range of values so that each resulting bin
-
 contains at least `min_bin_points`. Uses bisection.
 
 | Name | Type | Default | Description |
@@ -182,7 +177,6 @@ minimum_satisfied(values: numpy.ndarray, min_bin_points: int, n: int) -> int
 ```
 
 Calculates whether the partition into bins induced by `n` quantiles
-
 has the minimum number of points in each resulting bin.
 
 | Name | Type | Default | Description |

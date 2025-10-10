@@ -60,8 +60,6 @@ AnchorImage(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], image_sha
 explain(image: numpy.ndarray, p_sample: float = 0.5, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False, max_anchor_size: Optional[int] = None, min_samples_start: int = 100, n_covered_ex: int = 10, binary_cache_size: int = 10000, cache_margin: int = 1000, verbose: bool = False, verbose_every: int = 1, kwargs: typing.Any) -> alibi.api.interfaces.Explanation
 ```
 
-Explain instance and return anchor with metadata.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `image` | `numpy.ndarray` |  | Image to be explained. |
@@ -90,8 +88,6 @@ Explain instance and return anchor with metadata.
 generate_superpixels(image: numpy.ndarray) -> numpy.ndarray
 ```
 
-Generates superpixels from (i.e., segments) an image.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `image` | `numpy.ndarray` |  | A grayscale or RGB image. |
@@ -104,8 +100,6 @@ Generates superpixels from (i.e., segments) an image.
 ```python
 overlay_mask(image: numpy.ndarray, segments: numpy.ndarray, mask_features: list, scale: tuple = (0, 255)) -> numpy.ndarray
 ```
-
-Overlay image with mask described by the mask features.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -122,8 +116,6 @@ Overlay image with mask described by the mask features.
 ```python
 reset_predictor(predictor: Callable) -> None
 ```
-
-Resets the predictor function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -158,10 +150,6 @@ AnchorImageSampler(self, predictor: Callable, segmentation_fn: Callable, custom_
 compare_labels(samples: numpy.ndarray) -> numpy.ndarray
 ```
 
-Compute the agreement between a classifier prediction on an instance to be explained
-
-and the prediction on a set of samples which have a subset of perturbed superpixels.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `samples` | `numpy.ndarray` |  | Samples whose labels are to be compared with the instance label. |
@@ -175,8 +163,6 @@ and the prediction on a set of samples which have a subset of perturbed superpix
 generate_superpixels(image: numpy.ndarray) -> numpy.ndarray
 ```
 
-Generates superpixels from (i.e., segments) an image.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `image` | `numpy.ndarray` |  | A grayscale or RGB image. |
@@ -189,12 +175,6 @@ Generates superpixels from (i.e., segments) an image.
 ```python
 perturbation(anchor: tuple, num_samples: int) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
-
-Perturbs an image by altering the values of selected superpixels. If a dataset of image
-
-backgrounds is provided to the explainer, then the superpixels are replaced with the
-equivalent superpixels from the background image. Otherwise, the superpixels are replaced
-by their average value.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

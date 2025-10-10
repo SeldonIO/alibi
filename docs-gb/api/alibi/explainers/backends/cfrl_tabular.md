@@ -22,7 +22,6 @@ apply_category_mapping(X: numpy.ndarray, category_map: Dict[int, List[str]]) -> 
 ```
 
 Applies a category mapping for the categorical feature in the array. It transforms ints back to strings
-
 to be readable.
 
 | Name | Type | Default | Description |
@@ -40,7 +39,6 @@ generate_categorical_condition(X_ohe: numpy.ndarray, feature_names: List[str], c
 ```
 
 Generates categorical features conditional vector. For a categorical feature of cardinality `K`, we condition the
-
 subset of allowed feature through a binary mask of dimension `K`. When training the counterfactual generator,
 the mask values are sampled from `Bern(0.5)`. For immutable features, only the original input feature value is
 set to one in the binary mask. For example, the immutability of the ``'marital_status'`` having the current
@@ -85,7 +83,6 @@ generate_numerical_condition(X_ohe: numpy.ndarray, feature_names: List[str], cat
 ```
 
 Generates numerical features conditional vector. For numerical features with a minimum value `a_min` and a
-
 maximum value `a_max`, we include in the conditional vector the values `-p_min`, `p_max`, where `p_min, p_max`
 are in [0, 1]. The range `[-p_min, p_max]` encodes a shift and scale-invariant representation of the interval
 `[a - p_min * (a_max - a_min), a + p_max * (a_max - a_min)], where `a` is the original feature value. During
@@ -114,7 +111,6 @@ get_categorical_conditional_vector(X: numpy.ndarray, condition: Dict[str, List[U
 ```
 
 Generates a conditional vector. The condition is expressed a a delta change of the feature.
-
 For categorical feature, if the ``'Occupation'`` can change to ``'Blue-Collar'`` or ``'White-Collar'``, the delta
 change is ``['Blue-Collar', 'White-Collar']``. Note that the original value is optional as it is
 included by default.
@@ -186,7 +182,6 @@ get_he_preprocessor(X: numpy.ndarray, feature_names: List[str], category_map: Di
 ```
 
 Heterogeneous dataset preprocessor. The numerical features are standardized and the categorical features
-
 are one-hot encoded.
 
 | Name | Type | Default | Description |
@@ -206,7 +201,6 @@ get_numerical_conditional_vector(X: numpy.ndarray, condition: Dict[str, List[Uni
 ```
 
 Generates a conditional vector. The condition is expressed a a delta change of the feature.
-
 For numerical features, if the ``'Age'`` feature is allowed to increase up to 10 more years, the delta change is
 [0, 10].  If the ``'Hours per week'`` is allowed to decrease down to -5 and increases up to +10, then the
 delta change is [-5, +10]. Note that the interval must go include 0.
@@ -250,7 +244,6 @@ sample(X_hat_split: List[numpy.ndarray], X_ohe: numpy.ndarray, C: Optional[numpy
 ```
 
 Samples an instance from the given reconstruction according to the conditional vector and
-
 the dictionary of statistics.
 
 | Name | Type | Default | Description |
@@ -271,7 +264,6 @@ sample_categorical(X_hat_cat_split: List[numpy.ndarray], C_cat_split: Optional[L
 ```
 
 Samples categorical features according to the conditional vector. This method sample conditional according to
-
 the masking vector the most probable outcome.
 
 | Name | Type | Default | Description |
@@ -289,7 +281,6 @@ sample_numerical(X_hat_num_split: List[numpy.ndarray], X_ohe_num_split: List[num
 ```
 
 Samples numerical features according to the conditional vector. This method clips the values between the
-
 desired ranges specified in the conditional vector, and ensures that the values are between the minimum and
 the maximum values from train training datasets stored in the dictionary of statistics.
 
@@ -310,7 +301,6 @@ split_ohe(X_ohe: Union[np.ndarray, torch.Tensor, tf.Tensor], category_map: Dict[
 ```
 
 Splits a one-hot encoding array in a list of numerical heads and a list of categorical heads. Since by
-
 convention the numerical heads are merged in a single head, if the function returns a list of numerical heads,
 then the size of the list is 1.
 

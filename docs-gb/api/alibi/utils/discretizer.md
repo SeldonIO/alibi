@@ -22,12 +22,6 @@ Discretizer(self, data: numpy.ndarray, numerical_features: List[int], feature_na
 bins(data: numpy.ndarray) -> List[numpy.ndarray]
 ```
 
-Parameters
-
-----------
-data
-    Data to discretize.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `data` | `numpy.ndarray` |  | Data to discretize. |
@@ -41,12 +35,6 @@ data
 discretize(data: numpy.ndarray) -> numpy.ndarray
 ```
 
-Parameters
-
-----------
-data
-    Data to discretize.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `data` | `numpy.ndarray` |  | Data to discretize. |
@@ -59,11 +47,6 @@ data
 ```python
 get_percentiles(x: numpy.ndarray, qts: numpy.ndarray) -> numpy.ndarray
 ```
-
-Discretizes the the data in `x` using the quantiles in `qts`.
-
-This is achieved by searching for the index of each value in `x`
-into `qts`, which is assumed to be a 1-D sorted array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

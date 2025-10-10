@@ -4,7 +4,6 @@
 _Inherits from:_ `dict`
 
 Container object for internal datasets.
-
 Dictionary-like object that exposes its keys as attributes.
 
 ### Constructor
@@ -19,15 +18,6 @@ Bunch(self, **kwargs)
 ```python
 gen_category_map(data: Union[pandas.core.frame.DataFrame, numpy.ndarray], categorical_columns: Union[List[int], List[str], None] = None) -> Dict[int, list]
 ```
-
-Parameters
-
-----------
-data
-    2-dimensional `pandas` dataframe or `numpy` array.
-categorical_columns
-    A list of columns indicating categorical variables. Optional if passing a `pandas` dataframe as inference
-    will be used based on dtype ``'O'``. If passing a `numpy` array this is compulsory.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

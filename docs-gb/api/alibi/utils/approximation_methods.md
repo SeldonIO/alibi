@@ -47,7 +47,6 @@ gauss_legendre_builders() -> Tuple[Callable[[.[<class 'int'>]], List[float]], Ca
 ```
 
 `np.polynomial.legendre` function helps to compute step sizes and alpha coefficients using gauss-legendre
-
 quadrature rule. Since `numpy` returns the integration parameters in different scales we need to rescale them to
 adjust to the desired scale.
 

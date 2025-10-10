@@ -7,15 +7,14 @@ num_grad_batch(func: Callable, X: numpy.ndarray, args: Tuple = (), eps: Union[fl
 ```
 
 Calculate the numerical gradients of a vector-valued function (typically a prediction function in classification)
-
 with respect to a batch of arrays `X`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `func` | `Callable` |  | Function to be differentiated. |
 | `X` | `numpy.ndarray` |  | A batch of vectors at which to evaluate the gradient of the function. |
-| `args` | `Tuple` | `()` | Any additional arguments to pass to the function. |
-| `eps` | `Union[float, numpy.ndarray]` | `1e-08` | Gradient step to use in the numerical calculation, can be a single `float` or one for each feature. |
+| `args` | `Tuple` | `()` |  |
+| `eps` | `Union[float, numpy.ndarray]` | `1e-08` |  |
 
 **Returns**
 - Type: `numpy.ndarray`

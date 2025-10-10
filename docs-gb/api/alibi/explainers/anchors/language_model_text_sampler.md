@@ -22,8 +22,6 @@ LanguageModelSampler(self, model: alibi.utils.lang_model.LanguageModel, perturb_
 create_mask(anchor: tuple, num_samples: int, sample_proba: float = 1.0, filling: str = 'parallel', frac_mask_templates: float = 0.1, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
-Create mask for words to be perturbed.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `anchor` | `tuple` |  | Indices represent the positions of the words to be kept unchanged. |
@@ -31,7 +29,7 @@ Create mask for words to be perturbed.
 | `sample_proba` | `float` | `1.0` | Probability of a word being replaced. |
 | `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
 | `frac_mask_templates` | `float` | `0.1` | Fraction of mask templates from the number of requested samples. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments to be passed to other methods. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -42,8 +40,6 @@ Create mask for words to be perturbed.
 fill_mask(raw: numpy.ndarray, data: numpy.ndarray, num_samples: int, top_n: int = 100, batch_size_lm: int = 32, filling: str = 'parallel', kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
-Fill in the masked tokens with language model.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `raw` | `numpy.ndarray` |  | Array of mask templates. |
@@ -52,7 +48,7 @@ Fill in the masked tokens with language model.
 | `top_n` | `int` | `100` | Use the top n words when sampling. |
 | `batch_size_lm` | `int` | `32` | Batch size used for language model. |
 | `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other paremeters to be passed to other methods. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -63,13 +59,11 @@ Fill in the masked tokens with language model.
 get_sample_ids(punctuation: str = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~', stopwords: Optional[List[str]] = None, kwargs) -> None
 ```
 
-Find indices in words which can be perturbed.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `punctuation` | `str` | `'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'` | String of punctuation characters. |
 | `stopwords` | `Optional[List[str]]` | `None` | List of stopwords. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `None`
@@ -80,11 +74,6 @@ Find indices in words which can be perturbed.
 perturb_sentence(anchor: tuple, num_samples: int, sample_proba: float = 0.5, top_n: int = 100, batch_size_lm: int = 32, filling: str = 'parallel', kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
-The function returns an `numpy` array of `num_samples` where randomly chosen features,
-
-except those in anchor, are replaced by words sampled according to the language
-model's predictions.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `anchor` | `tuple` |  | Indices represent the positions of the words to be kept unchanged. |
@@ -93,7 +82,7 @@ model's predictions.
 | `top_n` | `int` | `100` | Used for top n sampling. |
 | `batch_size_lm` | `int` | `32` | Batch size used for language model. |
 | `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments to be passed to other methods. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -118,7 +107,6 @@ set_data_type() -> None
 ```
 
 Working with `numpy` arrays of strings requires setting the data type to avoid
-
 truncating examples. This function estimates the longest sentence expected
 during the sampling process, which is used to set the number of characters
 for the samples and examples arrays. This depends on the perturbation method
@@ -132,8 +120,6 @@ used for sampling.
 ```python
 set_text(text: str) -> None
 ```
-
-Sets the text to be processed
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

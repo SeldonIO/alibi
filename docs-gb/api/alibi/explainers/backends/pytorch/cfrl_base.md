@@ -86,7 +86,7 @@ Constructs a tensorflow data generator.
 | `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
 | `shuffle` | `bool` |  | Whether to shuffle the dataset each epoch. ``True`` by default. |
 | `num_workers` | `int` |  | Number of worker processes to be created. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 ### `decode`
 
@@ -315,4 +315,4 @@ Training step. Updates actor and critic networks including additional losses.
 | `C` | `Optional[numpy.ndarray]` |  | Conditional tensor. |
 | `R_tilde` | `numpy.ndarray` |  | Noised counterfactual reward. |
 | `device` | `torch.device` |  | Torch device object. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |

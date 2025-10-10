@@ -22,7 +22,6 @@ There is no arbitrary limit to the depth of nesting.
 _Inherits from:_ `PrettyPrinter`
 
 Overrides the built in dictionary pretty representation to look more similar to the external
-
 prettyprinter libary.
 
 ### Constructor
@@ -72,8 +71,6 @@ explain(X: typing.Any) -> alibi.api.interfaces.Explanation
 load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfaces.Explainer
 ```
 
-Load an explainer from disk.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `path` | `Union[str, os.PathLike]` |  | Path to a directory containing the saved explainer. |
@@ -88,8 +85,6 @@ Load an explainer from disk.
 reset_predictor(predictor: typing.Any) -> None
 ```
 
-Resets the predictor.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `typing.Any` |  | New predictor. |
@@ -102,8 +97,6 @@ Resets the predictor.
 ```python
 save(path: Union[str, os.PathLike]) -> None
 ```
-
-Save an explainer to disk. Uses the `dill` module.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -134,8 +127,6 @@ Explanation(self, meta: dict, data: dict) -> None
 ```python
 from_json(jsonrepr) -> alibi.api.interfaces.Explanation
 ```
-
-Create an instance of an `Explanation` class using a `json` representation of the `Explanation`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

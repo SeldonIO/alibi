@@ -20,14 +20,6 @@ AnchorExplanation(self, exp_type: str, exp_map: dict) -> None
 coverage(partial_index: Optional[int] = None) -> float
 ```
 
-Parameters
-
-----------
-partial_index
-    Get the result coverage until a certain index.
-    For example, if the result has precisions ``[0.1, 0.5, 0.95]`` and ``partial_index=1``, this will
-    return ``0.5``.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `partial_index` | `Optional[int]` | `None` | Get the result coverage until a certain index. For example, if the result has precisions ``[0.1, 0.5, 0.95]`` and ``partial_index=1``, this will return ``0.5``. |
@@ -40,18 +32,6 @@ partial_index
 ```python
 examples(only_different_prediction: bool = False, only_same_prediction: bool = False, partial_index: Optional[int] = None) -> Union[list, numpy.ndarray]
 ```
-
-Parameters
-
-----------
-only_different_prediction
-    If ``True``, will only return examples where the result makes a different prediction than the
-    original model.
-only_same_prediction
-    If ``True``, will only return examples where the result makes the same prediction than the
-    original model.
-partial_index
-    Get the examples from the partial result until a certain index.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -68,14 +48,6 @@ partial_index
 features(partial_index: Optional[int] = None) -> list
 ```
 
-Parameters
-
-----------
-partial_index
-    Get the result until a certain index.
-    For example, if the result uses ``segment_labels=(1, 2, 3)`` and ``partial_index=1``, this will
-    return ``[1, 2]``.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `partial_index` | `Optional[int]` | `None` | Get the result until a certain index. For example, if the result uses ``segment_labels=(1, 2, 3)`` and ``partial_index=1``, this will return ``[1, 2]``. |
@@ -89,14 +61,6 @@ partial_index
 names(partial_index: Optional[int] = None) -> list
 ```
 
-Parameters
-
-----------
-partial_index
-    Get the result until a certain index.
-    For example, if the result is ``(A=1, B=2, C=2)`` and ``partial_index=1``, this will
-    return ``["A=1", "B=2"]``.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `partial_index` | `Optional[int]` | `None` | Get the result until a certain index. For example, if the result is ``(A=1, B=2, C=2)`` and ``partial_index=1``, this will return ``["A=1", "B=2"]``. |
@@ -109,14 +73,6 @@ partial_index
 ```python
 precision(partial_index: Optional[int] = None) -> float
 ```
-
-Parameters
-
-----------
-partial_index
-    Get the result precision until a certain index.
-    For example, if the result has precisions ``[0.1, 0.5, 0.95]`` and ``partial_index=1``, this will
-    return ``0.5``.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

@@ -90,7 +90,7 @@ CounterfactualRL(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], enco
 | `latent_dim` | `Optional[int]` | `None` | Auto-encoder latent dimension. Can be omitted if the actor network is user specified. |
 | `backend` | `str` | `'tensorflow'` | Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``. |
 | `seed` | `int` | `0` | Seed for reproducibility. The results are not reproducible for ``'tensorflow'`` backend. |
-| `Used` |  |  |  |
+| `**kwargs` |  |  | Used to replace any default parameter from :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS`. |
 
 ### Methods
 
@@ -99,8 +99,6 @@ CounterfactualRL(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], enco
 ```python
 explain(X: numpy.ndarray, Y_t: numpy.ndarray, C: Optional[numpy.ndarray] = None, batch_size: int = 100) -> alibi.api.interfaces.Explanation
 ```
-
-Explains an input instance
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -117,8 +115,6 @@ Explains an input instance
 ```python
 fit(X: numpy.ndarray) -> alibi.api.interfaces.Explainer
 ```
-
-Fit the model agnostic counterfactual generator.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -189,7 +185,6 @@ _Inherits from:_ `ABC`
 ## `ReplayBuffer`
 
 Circular experience replay buffer for `CounterfactualRL` (DDPG). When the buffer is filled, then the oldest
-
 experience is replaced by the new one (FIFO). The experience batch size is kept constant and inferred when
 the first batch of data is stored. Allowing flexible batch size can generate `tensorflow` warning due to
 the `tf.function` retracing, which can lead to a drop in performance.
@@ -212,10 +207,6 @@ ReplayBuffer(self, size: int = 1000) -> None
 append(X: numpy.ndarray, Y_m: numpy.ndarray, Y_t: numpy.ndarray, Z: numpy.ndarray, Z_cf_tilde: numpy.ndarray, C: Optional[numpy.ndarray], R_tilde: numpy.ndarray, kwargs) -> None
 ```
 
-Adds experience to the replay buffer. When the buffer is filled, then the oldest experience is replaced
-
-by the new one (FIFO).
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | Input array. |
@@ -225,7 +216,7 @@ by the new one (FIFO).
 | `Z_cf_tilde` | `numpy.ndarray` |  | Noised counterfactual embedding. |
 | `C` | `Optional[numpy.ndarray]` |  | Conditional array. |
 | `R_tilde` | `numpy.ndarray` |  | Noised counterfactual reward array. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `None`

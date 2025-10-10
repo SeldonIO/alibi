@@ -9,7 +9,6 @@ can have broader use-cases.
 _Inherits from:_ `Model`, `TensorFlowTrainer`, `Trainer`, `Layer`, `TFLayer`, `KerasAutoTrackable`, `AutoTrackable`, `Trackable`, `Operation`, `KerasSaveable`
 
 Actor network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
-
 The model is used in Counterfactual with Reinforcement Learning (CFRL) for both data modalities (images and
 tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
 
@@ -32,12 +31,10 @@ Actor(self, hidden_dim: int, output_dim: int, **kwargs)
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
 
-Forward pass.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -67,7 +64,6 @@ Returns the configuration of the model for serialization.
 _Inherits from:_ `Model`, `TensorFlowTrainer`, `Trainer`, `Layer`, `TFLayer`, `KerasAutoTrackable`, `AutoTrackable`, `Trackable`, `Operation`, `KerasSaveable`
 
 Critic network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
-
 The model is used in Counterfactual with Reinforcement Learning (CFRL) for both data modalities (images and
 tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
 
@@ -88,8 +84,6 @@ Critic(self, hidden_dim: int, **kwargs)
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
-
-Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

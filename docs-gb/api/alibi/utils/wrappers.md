@@ -2,7 +2,6 @@
 ## `ArgmaxTransformer`
 
 A transformer for converting classification output probability
-
 tensors to class labels. It assumes the predictor is a callable
 that can be called with a `N`-tensor of data points `x` and produces
 an `N`-tensor of outputs.
@@ -38,7 +37,6 @@ methdispatch(func)
 ```
 
 A decorator that is used to support singledispatch style functionality
-
 for instance methods. By default, singledispatch selects a function to
 call from registered based on the type of args[0]::
 

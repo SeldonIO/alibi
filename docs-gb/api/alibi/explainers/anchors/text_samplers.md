@@ -71,8 +71,6 @@ Neighbors(self, nlp_obj: 'spacy.language.Language', n_similar: int = 500, w_prob
 neighbors(word: str, tag: str, top_n: int) -> dict
 ```
 
-Find similar words for a certain word in the vocabulary.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `word` | `str` |  | Word for which we need to find similar words. |
@@ -106,7 +104,6 @@ find_similar_words() -> None
 ```
 
 This function queries a `spaCy` nlp model to find `n` similar words with the same
-
 part of speech for each word in the instance to be explained. For each word
 the search procedure returns a dictionary containing a `numpy` array of words (``'words'``)
 and a `numpy` array of word similarities (``'similarities'``).
@@ -117,10 +114,8 @@ and a `numpy` array of word similarities (``'similarities'``).
 #### `perturb_sentence_similarity`
 
 ```python
-perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'ADP', 'DET', 'VERB', 'ADJ', 'NOUN', 'ADV'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
+perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'VERB', 'ADJ', 'ADP', 'NOUN', 'ADV', 'DET'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
-
-Perturb the text instance to be explained.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -131,9 +126,9 @@ Perturb the text instance to be explained.
 | `forbidden_tags` | `frozenset` | `frozenset({'PRP$'})` | Forbidden POS tags. |
 | `forbidden_words` | `frozenset` | `frozenset({'be'})` | Forbidden words. |
 | `temperature` | `float` | `1.0` | Sample weight hyper-parameter if ``use_proba=True``. |
-| `pos` | `frozenset` | `frozenset({'ADP', 'DET', 'VERB', 'ADJ', 'NOUN', 'ADV'})` | POS that can be changed during perturbation. |
+| `pos` | `frozenset` | `frozenset({'VERB', 'ADJ', 'ADP', 'NOUN', 'ADV', 'DET'})` | POS that can be changed during perturbation. |
 | `use_proba` | `bool` | `False` | Bool whether to sample according to a similarity score with the corpus embeddings. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments. Not used. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -145,7 +140,6 @@ set_data_type() -> None
 ```
 
 Working with `numpy` arrays of strings requires setting the data type to avoid
-
 truncating examples. This function estimates the longest sentence expected
 during the sampling process, which is used to set the number of characters
 for the samples and examples arrays. This depends on the perturbation method
@@ -159,8 +153,6 @@ used for sampling.
 ```python
 set_text(text: str) -> None
 ```
-
-Sets the text to be processed
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -193,7 +185,6 @@ set_data_type() -> None
 ```
 
 Working with `numpy` arrays of strings requires setting the data type to avoid
-
 truncating examples. This function estimates the longest sentence expected
 during the sampling process, which is used to set the number of characters
 for the samples and examples arrays. This depends on the perturbation method
@@ -207,8 +198,6 @@ used for sampling.
 ```python
 set_text(text: str) -> None
 ```
-
-Sets the text to be processed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -225,7 +214,6 @@ load_spacy_lexeme_prob(nlp: spacy.language.Language) -> spacy.language.Language
 ```
 
 This utility function loads the `lexeme_prob` table for a spacy model if it is not present.
-
 This is required to enable support for different spacy versions.
 
 | Name | Type | Default | Description |

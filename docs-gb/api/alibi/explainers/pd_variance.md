@@ -43,7 +43,6 @@ Enumeration of supported methods.
 _Inherits from:_ `Explainer`, `ABC`, `Base`
 
 Implementation of the partial dependence(PD) variance feature importance and feature interaction for
-
 tabular datasets. The method measure the importance feature importance as the variance within the PD function.
 Similar, the potential feature interaction is measured by computing the variance within the two-way PD function
 by holding one variable constant and letting the other vary. Supports black-box models and the following `sklearn`
@@ -63,10 +62,9 @@ PartialDependenceVariance(self, predictor: Union[sklearn.base.BaseEstimator, Cal
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Union[sklearn.base.BaseEstimator, Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]]` |  | A `sklearn` estimator or a prediction function which receives as input a `numpy` array of size `N x F` and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input instances, `F` is the number of features and `T` is the number of targets. |
 | `feature_names` | `Optional[List[str]]` | `None` | A list of feature names used for displaying results.E |
-| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: |
+| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. Necessary to identify the categorical features in the dataset. An example for `categorical_names` would be:: category_map = {0: ["married", "divorced"], 3: ["high school diploma", "master's degree"]} |
 | `target_names` | `Optional[List[str]]` | `None` | A list of target/output names used for displaying results. |
 | `verbose` | `bool` | `False` | Whether to print the progress of the explainer. |
-| `category_map` |  |  |  |
 
 ### Methods
 
@@ -75,10 +73,6 @@ PartialDependenceVariance(self, predictor: Union[sklearn.base.BaseEstimator, Cal
 ```python
 explain(X: numpy.ndarray, features: Union[List[int], List[Tuple[int, int]], None] = None, method: Literal[importance, interaction] = 'importance', percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation
 ```
-
-Calculates the variance partial dependence feature importance for each feature with respect to the all targets
-
-and the reference dataset `X`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -115,5 +109,4 @@ Plot feature importance and feature interaction based on partial dependence curv
 | `sharey` | `Optional[Literal[all, row]]` | `'all'` | A parameter specifying whether the y-axis of the PD and ICE curves should be on the same scale for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``. |
 | `bar_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.pyplot.barh`_ function. |
 | `line_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.pyplot.plot`_ function. |
-| `fig_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.figure.set`_ function. |
-| `https` | `//matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html` |  |  |
+| `fig_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.figure.set`_ function. .. _matplotlib.pyplot.barh: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html .. _matplotlib.pyplot.plot: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html .. _matplotlib.figure.set: https://matplotlib.org/stable/api/figure_api.html |

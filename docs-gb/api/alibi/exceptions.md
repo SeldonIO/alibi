@@ -62,7 +62,6 @@ This exception is raised whenever a call to a user supplied predictor fails at r
 _Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPredictorReturnTypeError`
 
 This exception is raised whenever the return type of a user supplied predictor is of
-
 an unexpected or unsupported type.
 
 ## `SerializationError`

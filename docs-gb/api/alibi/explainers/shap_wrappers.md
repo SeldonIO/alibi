@@ -126,7 +126,7 @@ A wrapper around `shap.KernelExplainer` that supports:
 
 - fixing the seed when instantiating the KernelExplainer in a separate process.
 
-    - passing a batch index to the explainer so that a parallel explainer pool can return batches in         arbitrary order.
+- passing a batch index to the explainer so that a parallel explainer pool can return batches in         arbitrary order.
 
 ### Constructor
 
@@ -136,7 +136,7 @@ KernelExplainerWrapper(self, *args, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Arguments` |  |  |  |
+| `*args,` | `**kwargs` |  | Arguments and keyword arguments for `shap.KernelExplainer` constructor. |
 
 ### Methods
 
@@ -146,13 +146,10 @@ KernelExplainerWrapper(self, *args, **kwargs)
 get_explanation(X: Union[Tuple[int, numpy.ndarray], numpy.ndarray], kwargs) -> Union[Tuple[int, numpy.ndarray], Tuple[int, List[numpy.ndarray]], numpy.ndarray, List[numpy.ndarray]]
 ```
 
-Wrapper around `shap.KernelExplainer.shap_values` that allows calling the method with a tuple containing a
-
-batch index and a batch of instances.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[Tuple[int, numpy.ndarray], numpy.ndarray]` |  | When called from a distributed context, it is a tuple containing a batch index and a batch to be explained. Otherwise, it is an array of instances to be explained. |
+| `**kwargs` |  |  | `shap.KernelExplainer.shap_values` kwarg values. |
 
 **Returns**
 - Type: `Union[Tuple[int, numpy.ndarray], Tuple[int, List[numpy.ndarray]], numpy.ndarray, List[numpy.ndarray]]`
@@ -164,7 +161,6 @@ return_attribute(name: str) -> typing.Any
 ```
 
 Returns an attribute specified by its name. Used in a distributed context where the actor properties cannot be
-
 accessed using the dot syntax.
 
 | Name | Type | Default | Description |
@@ -187,13 +183,12 @@ KernelShap(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], link: str 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]` |  | A callable that takes as an input a `samples x features` array and outputs a `samples x n_outputs` model outputs. The `n_outputs` should represent model output in margin space. If the model outputs probabilities, then the link should be set to ``'logit'`` to ensure correct force plots. |
-| `link` | `str` | `'identity'` | Valid values are ``'identity'`` or ``'logit'``. A generalized linear model link to connect the feature importance values to the model output. Since the feature importance values, :math:`\phi`, sum up to the model output, it often makes sense to connect them to the ouput with a link function where :math:`link(output - expected\_value) = sum(\phi)`. Therefore, for a model which outputs probabilities, ``link='logit'`` makes the feature effects have log-odds (evidence) units and ``link='identity'`` means that the feature effects have probability units. Please see this `example`_ for an in-depth discussion about the semantics of explaining the model in the probability or margin space. |
+| `link` | `str` | `'identity'` | Valid values are ``'identity'`` or ``'logit'``. A generalized linear model link to connect the feature importance values to the model output. Since the feature importance values, :math:`\phi`, sum up to the model output, it often makes sense to connect them to the ouput with a link function where :math:`link(output - expected\_value) = sum(\phi)`. Therefore, for a model which outputs probabilities, ``link='logit'`` makes the feature effects have log-odds (evidence) units and ``link='identity'`` means that the feature effects have probability units. Please see this `example`_ for an in-depth discussion about the semantics of explaining the model in the probability or margin space. .. _example: https://github.com/slundberg/shap/blob/master/notebooks/tabular_examples/model_agnostic/Squashing%20Effect.ipynb |
 | `feature_names` | `Union[List[str], Tuple[str], None]` | `None` | Used to infer group names when categorical data is treated by grouping and `group_names` input to `fit` is not specified, assuming it has the same length as the `groups` argument of `fit` method. It is also used to compute the `names` field, which appears as a key in each of the values of `explanation.data['raw']['importances']`. |
 | `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Keys are feature column indices in the `background_data` matrix (see `fit`). Each value contains strings with the names of the categories for the feature. Used to select the method for background data summarisation (if specified, subsampling is performed as opposed to k-means clustering). In the future it may be used for visualisation. |
 | `task` | `str` | `'classification'` | Can have values ``'classification'`` and ``'regression'``. It is only used to set the contents of `explanation.data['raw']['prediction']` |
 | `seed` | `Optional[int]` | `None` | Fixes the random number stream, which influences which subsets are sampled during shap value estimation. |
 | `distributed_opts` | `Optional[Dict]` | `None` | A dictionary that controls the algorithm distributed execution. See :py:data:`alibi.explainers.shap_wrappers.DISTRIBUTED_OPTS` documentation for details. |
-| `https` | `//github.com/slundberg/shap/blob/master/notebooks/tabular_examples/model_agnostic/Squashing%20Effect.ipynb` |  |  |
 
 ### Methods
 
@@ -203,17 +198,13 @@ KernelShap(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], link: str 
 explain(X: Union[numpy.ndarray, pandas.core.frame.DataFrame, scipy.sparse._matrix.spmatrix], summarise_result: bool = False, cat_vars_start_idx: Optional[Sequence[int]] = None, cat_vars_enc_dim: Optional[Sequence[int]] = None, kwargs) -> alibi.api.interfaces.Explanation
 ```
 
-Explains the instances in the array `X`.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[numpy.ndarray, pandas.core.frame.DataFrame, scipy.sparse._matrix.spmatrix]` |  | Instances to be explained. |
 | `summarise_result` | `bool` | `False` | Specifies whether the shap values corresponding to dimensions of encoded categorical variables should be summed so that a single shap value is returned for each categorical variable. Both the start indices of the categorical variables (`cat_vars_start_idx`) and the encoding dimensions (`cat_vars_enc_dim`) have to be specified |
 | `cat_vars_start_idx` | `Optional[Sequence[int]]` | `None` | The start indices of the categorical variables. If specified, `cat_vars_enc_dim` should also be specified. |
 | `cat_vars_enc_dim` | `Optional[Sequence[int]]` | `None` | The length of the encoding dimension for each categorical variable. If specified `cat_vars_start_idx` should also be specified. |
-| `Keyword` |  |  |  |
-| `For` |  |  |  |
-| `https` | `//shap.readthedocs.io/en/stable/.` |  |  |
+| `**kwargs` |  |  | Keyword arguments specifying explain behaviour. Valid arguments are: - `nsamples` - controls the number of predictor calls and therefore runtime. - `l1_reg` - the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will                 first run a feature selection algorithm to select the top features, provided the fraction of sampled                 sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information                 Criterion is used in this case. See our examples for more details about available settings for this                 parameter. Note that by first running a feature selection step, the shapley values of the remainder of                 the features will be different to those estimated from the entire set. For more details, please see the shap library `documentation`_ . .. _documentation: https://shap.readthedocs.io/en/stable/. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
@@ -224,17 +215,6 @@ Explains the instances in the array `X`.
 fit(background_data: Union[numpy.ndarray, scipy.sparse._matrix.spmatrix, pandas.core.frame.DataFrame, shap.utils._legacy.Data], summarise_background: Union[bool, str] = False, n_background_samples: int = 300, group_names: Union[List[str], Tuple[str], None] = None, groups: Optional[List[Union[Tuple[int], List[int]]]] = None, weights: Union[List[float], Tuple[float], numpy.ndarray, None] = None, kwargs) -> alibi.explainers.shap_wrappers.KernelShap
 ```
 
-This takes a background dataset (usually a subsample of the training set) as an input along with several
-
-user specified options and initialises a `KernelShap` explainer. The runtime of the algorithm depends on the
-number of samples in this dataset and on the number of features in the dataset. To reduce the size of the
-dataset, the `summarise_background` option and `n_background_samples` should be used. To reduce the feature
-dimensionality, encoded categorical variables can be treated as one during the feature perturbation process;
-this decreases the effective feature dimensionality, can reduce the variance of the shap values estimation and
-reduces slightly the number of calls to the predictor. Further runtime savings can be achieved by changing the
-`nsamples` parameter in the call to explain. Runtime reduction comes with an accuracy trade-off, so it is better
-to experiment with a runtime reduction method and understand results stability before using the system.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `background_data` | `Union[numpy.ndarray, scipy.sparse._matrix.spmatrix, pandas.core.frame.DataFrame, shap.utils._legacy.Data]` |  | Data used to estimate feature contributions and baseline values for force plots. The rows of the background data should represent samples and the columns features. |
@@ -243,7 +223,7 @@ to experiment with a runtime reduction method and understand results stability b
 | `group_names` | `Union[List[str], Tuple[str], None]` | `None` | If specified, this array is used to treat groups of features as one during feature perturbation. This feature can be useful, for example, to treat encoded categorical variables as one and can result in computational savings (this may require adjusting the `nsamples` parameter). |
 | `groups` | `Optional[List[Union[Tuple[int], List[int]]]]` | `None` | A list containing sub-lists specifying the indices of features belonging to the same group. |
 | `weights` | `Union[List[float], Tuple[float], numpy.ndarray, None]` | `None` | A sequence or array of weights. This is used only if grouping is specified and assigns a weight to each point in the dataset. |
-| `Expected` |  |  | index column is passed to the algorithm. |
+| `**kwargs` |  |  | Expected keyword arguments include `keep_index` (bool) and should be used if a data frame containing an index column is passed to the algorithm. |
 
 **Returns**
 - Type: `alibi.explainers.shap_wrappers.KernelShap`
@@ -253,8 +233,6 @@ to experiment with a runtime reduction method and understand results stability b
 ```python
 reset_predictor(predictor: Callable) -> None
 ```
-
-Resets the prediction function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -276,7 +254,7 @@ TreeShap(self, predictor: Any, model_output: str = 'raw', feature_names: Union[L
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `typing.Any` |  | A fitted model to be explained. `XGBoost`, `LightGBM`, `CatBoost` and most tree-based `scikit-learn` models are supported. In the future, `Pyspark` could also be supported. Please open an issue if this is a use case for you. |
-| `model_output` | `str` | `'raw'` | Supported values are: ``'raw'``, ``'probability'``, ``'probability_doubled'``, ``'log_loss'``: |
+| `model_output` | `str` | `'raw'` | Supported values are: ``'raw'``, ``'probability'``, ``'probability_doubled'``, ``'log_loss'``: - ``'raw'`` - the raw model of the output, which varies by task, is explained. This option                 should always be used if the `fit` is called without arguments. It should also be set to compute                 shap interaction values. For regression models it is the standard output, for binary classification                 in `XGBoost` it is the log odds ratio. - ``'probability'`` - the probability output is explained. This option should only be used if `fit`                 was called with the `background_data` argument set. The effect of specifying this parameter is that                 the `shap` library will use this information to transform the shap values computed in margin space                 (aka using the raw output) to shap values that sum to the probability output by the model plus the                 model expected output probability. This requires knowledge of the type of output for `predictor`                 which is inferred by the `shap` library from the model type (e.g., most sklearn models with exception                 of `sklearn.tree.DecisionTreeClassifier`, `sklearn.ensemble.RandomForestClassifier`,                 `sklearn.ensemble.ExtraTreesClassifier` output logits) or on the basis of the mapping implemented in                 the `shap.TreeEnsemble` constructor. Only trees that output log odds and probabilities are supported                 currently. - ``'probability_doubled'`` - used for binary classification problem in situations where the model                 outputs the logits/probabilities for the positive class but shap values for both outcomes are desired.                 This option should be used only if `fit` was called with the `background_data` argument set. In                 this case the expected value for the negative class is 1 - expected_value for positive class and                 the shap values for the negative class are the negative values of the positive class shap values.                 As before, the explanation happens in the margin space, and the shap values are subsequently adjusted.                 convert the model output to probabilities. The same considerations as for `probability` apply for this                 output type too. - ``'log_loss'`` - logarithmic loss is explained. This option shoud be used only if `fit` was called                 with the `background_data` argument set and requires specifying labels, `y`, when calling `explain`.                 If the objective is squared error, then the transformation :math:`(output - y)^2` is applied. For                 binary cross-entropy objective, the transformation :math:`log(1 + exp(output)) - y * output` with                  :math:`y \in \{0, 1\}`. Currently only binary cross-entropy and squared error losses can be explained. |
 | `feature_names` | `Union[List[str], Tuple[str], None]` | `None` | Used to compute the `names` field, which appears as a key in each of the values of the `importances` sub-field of the response `raw` field. |
 | `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Keys are feature column indices. Each value contains strings with the names of the categories for the feature. Used to select the method for background data summarisation (if specified, subsampling is performed as opposed to kmeans clustering). In the future it may be used for visualisation. |
 | `task` | `str` | `'classification'` | Can have values ``'classification'`` and ``'regression'``. It is only used to set the contents of the `prediction` field in the `data['raw']` response field. |
@@ -290,24 +268,17 @@ TreeShap(self, predictor: Any, model_output: str = 'raw', feature_names: Union[L
 explain(X: Union[numpy.ndarray, pandas.core.frame.DataFrame, ForwardRef('catboost.Pool')], y: Optional[numpy.ndarray] = None, interactions: bool = False, approximate: bool = False, check_additivity: bool = True, tree_limit: Optional[int] = None, summarise_result: bool = False, cat_vars_start_idx: Optional[Sequence[int]] = None, cat_vars_enc_dim: Optional[Sequence[int]] = None, kwargs) -> Explanation
 ```
 
-Explains the instances in `X`. `y` should be passed if the model loss function is to be explained,
-
-which can be useful in order to understand how various features affect model performance over
-time. This is only possible if the explainer has been fitted with a background dataset and
-requires setting `model_output='log_loss'`.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[numpy.ndarray, pandas.core.frame.DataFrame, ForwardRef('catboost.Pool')]` |  | Instances to be explained. |
 | `y` | `Optional[numpy.ndarray]` | `None` | Labels corresponding to rows of `X`. Should be passed only if a background dataset was passed to the `fit` method. |
 | `interactions` | `bool` | `False` | If ``True``, the shap value for every feature of every instance in `X` is decomposed into `X.shape[1] - 1` shap value interactions and one main effect. This is only supported if `fit` is called with `background_dataset=None`. |
-| `approximate` | `bool` | `False` | If ``True``, an approximation to the shap values that does not account for feature order is computed. This was proposed by `Ando Sabaas`_ here . Check `this`_ resource for more details. This option is currently only supported for `xgboost` and `sklearn` models. |
+| `approximate` | `bool` | `False` | If ``True``, an approximation to the shap values that does not account for feature order is computed. This was proposed by `Ando Sabaas`_ here . Check `this`_ resource for more details. This option is currently only supported for `xgboost` and `sklearn` models. .. _Ando Sabaas: https://github.com/andosa/treeinterpreter .. _this: https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_MOESM1_ESM.pdf |
 | `check_additivity` | `bool` | `True` | If ``True``, output correctness is ensured if ``model_output='raw'`` has been passed to the constructor. |
 | `tree_limit` | `Optional[int]` | `None` | Explain the output of a subset of the first `tree_limit` trees in an ensemble model. |
 | `summarise_result` | `bool` | `False` | This should be set to ``True`` only when some of the columns in `X` represent encoded dimensions of a categorical variable and one single shap value per categorical variable is desired. Both `cat_vars_start_idx` and `cat_vars_enc_dim` should be specified as detailed below to allow this. |
 | `cat_vars_start_idx` | `Optional[Sequence[int]]` | `None` | The start indices of the categorical variables. |
 | `cat_vars_enc_dim` | `Optional[Sequence[int]]` | `None` | The length of the encoding dimension for each categorical variable. |
-| `https` | `//github.com/andosa/treeinterpreter` |  |  |
 
 **Returns**
 - Type: `Explanation`
@@ -317,16 +288,6 @@ requires setting `model_output='log_loss'`.
 ```python
 fit(background_data: Union[numpy.ndarray, pandas.core.frame.DataFrame, None] = None, summarise_background: Union[bool, str] = False, n_background_samples: int = 1000, kwargs) -> alibi.explainers.shap_wrappers.TreeShap
 ```
-
-This function instantiates an explainer which can then be use to explain instances using the `explain` method.
-
-If no background dataset is passed, the explainer uses the path-dependent feature perturbation algorithm
-to explain the values. As such, only the model raw output can be explained and this should be reflected by
-passing ``model_output='raw'`` when instantiating the explainer. If a background dataset is passed, the
-interventional feature perturbation algorithm is used. Using this algorithm, probability outputs can also be
-explained. Additionally, if the ``model_output='log_loss'`` option is passed to the explainer constructor, then
-the model loss function can be explained by passing the labels as the `y` argument to the explain method.
-A limited number of loss functions are supported, as detailed in the constructor documentation.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -343,8 +304,6 @@ A limited number of loss functions are supported, as detailed in the constructor
 reset_predictor(predictor: typing.Any) -> None
 ```
 
-Resets the predictor.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `typing.Any` |  | New prediction. |
@@ -360,7 +319,6 @@ rank_by_importance(shap_values: List[numpy.ndarray], feature_names: Union[List[s
 ```
 
 Given the shap values estimated for a multi-output model, this function ranks
-
 features according to their importance. The feature importance is the average
 absolute value for a given feature.
 

@@ -65,11 +65,11 @@ AnchorText(self, predictor: Callable[[List[str]], numpy.ndarray], sampling_strat
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Callable[[.[typing.List[str]]], numpy.ndarray]` |  | A callable that takes a list of text strings representing `N` data points as inputs and returns `N` outputs. |
-| `sampling_strategy` | `str` | `'unknown'` | Perturbation distribution method: |
+| `sampling_strategy` | `str` | `'unknown'` | Perturbation distribution method: - ``'unknown'`` - replaces words with UNKs. - ``'similarity'`` - samples according to a similarity score with the corpus embeddings. - ``'language_model'`` - samples according the language model's output distributions. |
 | `nlp` | `Optional[spacy.language.Language]` | `None` | `spaCy` object when sampling method is ``'unknown'`` or ``'similarity'``. |
 | `language_model` | `Optional[alibi.utils.lang_model.LanguageModel]` | `None` | Transformers masked language model. This is a model that it adheres to the `LanguageModel` interface we define in :py:class:`alibi.utils.lang_model.LanguageModel`. |
 | `seed` | `int` | `0` | If set, ensure identical random streams. |
-| `kwargs` | `typing.Any` |  | Sampling arguments can be passed as `kwargs` depending on the `sampling_strategy`. Check default arguments defined in: |
+| `kwargs` | `typing.Any` |  | Sampling arguments can be passed as `kwargs` depending on the `sampling_strategy`. Check default arguments defined in: - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_UNKNOWN` - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_SIMILARITY` - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_LANGUAGE_MODEL` |
 
 ### Methods
 
@@ -78,11 +78,6 @@ AnchorText(self, predictor: Callable[[List[str]], numpy.ndarray], sampling_strat
 ```python
 compare_labels(samples: numpy.ndarray) -> numpy.ndarray
 ```
-
-Compute the agreement between a classifier prediction on an instance to be explained
-
-and the prediction on a set of samples which have a subset of features fixed to a
-given value (aka compute the precision of anchors).
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -96,8 +91,6 @@ given value (aka compute the precision of anchors).
 ```python
 explain(text: str, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = True, max_anchor_size: Optional[int] = None, min_samples_start: int = 100, n_covered_ex: int = 10, binary_cache_size: int = 10000, cache_margin: int = 1000, verbose: bool = False, verbose_every: int = 1, kwargs: typing.Any) -> alibi.api.interfaces.Explanation
 ```
-
-Explain instance and return anchor with metadata.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -116,7 +109,7 @@ Explain instance and return anchor with metadata.
 | `cache_margin` | `int` | `1000` | When only ``max(cache_margin, batch_size)`` positions in the binary cache remain empty, a new cache of the same size is pre-allocated to continue buffering samples. |
 | `verbose` | `bool` | `False` | Display updates during the anchor search iterations. |
 | `verbose_every` | `int` | `1` | Frequency of displayed iterations during anchor search process. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
@@ -126,8 +119,6 @@ Explain instance and return anchor with metadata.
 ```python
 reset_predictor(predictor: Callable) -> None
 ```
-
-Resets the predictor function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -142,13 +133,9 @@ Resets the predictor function.
 sampler(anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True) -> Union[List[Union[numpy.ndarray, float, int]], List[numpy.ndarray]]
 ```
 
-Generate perturbed samples while maintaining features in positions specified in
-
-anchor unchanged.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchor` | `Tuple[int, tuple]` |  | - ``int`` - the position of the anchor in the input batch. |
+| `anchor` | `Tuple[int, tuple]` |  | - ``int`` - the position of the anchor in the input batch. - ``tuple`` - the anchor itself, a list of words to be kept unchanged. |
 | `num_samples` | `int` |  | Number of generated perturbed samples. |
 | `compute_labels` | `bool` | `True` | If ``True``, an array of comparisons between predictions on perturbed samples and instance to be explained is returned. |
 

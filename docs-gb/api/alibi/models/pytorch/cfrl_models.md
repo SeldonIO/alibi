@@ -8,7 +8,6 @@ experiments for both data modalities (image and tabular).
 _Inherits from:_ `Module`
 
 ADULT decoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of
-
 of a fully connected layer with ReLU nonlinearity, and a multiheaded layer, one for each categorical feature and
 a single head for the rest of numerical features. The hidden dimension used in the paper is 128.
 
@@ -31,8 +30,6 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int])
 forward(x: torch.Tensor) -> List[torch.Tensor]
 ```
 
-Forward pass.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `torch.Tensor` |  | Input tensor. |
@@ -45,7 +42,6 @@ Forward pass.
 _Inherits from:_ `Module`
 
 ADULT encoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of
-
 two fully connected layers with ReLU and tanh nonlinearities. The tanh nonlinearity clips the embedding in [-1, 1]
 as required in the DDPG algorithm (e.g., [act_low, act_high]). The layers' dimensions used in the paper are
 128 and 15, although those can vary as they were selected to generalize across many datasets.
@@ -69,8 +65,6 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int)
 forward(x: torch.Tensor) -> torch.Tensor
 ```
 
-Forward pass.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `torch.Tensor` |  | Input tensor. |
@@ -83,7 +77,6 @@ Forward pass.
 _Inherits from:_ `Model`, `Module`
 
 MNIST classifier used in the experiments for Counterfactual with Reinforcement Learning. The model consists of two
-
 convolutional layers having 64 and 32 channels and a kernel size of 2 with ReLU nonlinearities, followed by
 maxpooling of size 2 and dropout of 0.3. The convolutional block is followed by a fully connected layer of 256 with
 ReLU nonlinearity, and finally a fully connected layer is used to predict the class logits (10 in MNIST case).
@@ -106,8 +99,6 @@ MNISTClassifier(self, output_dim: int) -> None
 forward(x: torch.Tensor) -> torch.Tensor
 ```
 
-Forward pass.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `torch.Tensor` |  | Input tensor. |
@@ -120,7 +111,6 @@ Forward pass.
 _Inherits from:_ `Module`
 
 MNIST decoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of a fully
-
 connected layer of 128 units with ReLU activation followed by a convolutional block. The convolutional block
 consists fo 4 convolutional layers having 8, 8, 8  and 1 channels and a kernel size of 3. Each convolutional layer,
 except the last one, has ReLU nonlinearities and is followed by an upsampling layer of size 2. The final layers
@@ -144,8 +134,6 @@ MNISTDecoder(self, latent_dim: int)
 forward(x: torch.Tensor) -> torch.Tensor
 ```
 
-Forward pass.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `torch.Tensor` |  | Input tensor. |
@@ -158,7 +146,6 @@ Forward pass.
 _Inherits from:_ `Module`
 
 MNIST encoder used in the experiments for the Counterfactual with Reinforcement Learning. The model
-
 consists of 3 convolutional layers having 16, 8 and 8 channels and a kernel size of 3, with ReLU nonlinearities.
 Each convolutional layer is followed by a maxpooling layer of size 2. Finally, a fully connected layer
 follows the convolutional block with a tanh nonlinearity. The tanh clips the output between [-1, 1], required
@@ -182,8 +169,6 @@ MNISTEncoder(self, latent_dim: int)
 ```python
 forward(x: torch.Tensor) -> torch.Tensor
 ```
-
-Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

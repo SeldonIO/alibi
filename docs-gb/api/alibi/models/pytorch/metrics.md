@@ -31,8 +31,6 @@ AccuracyMetric(self, name: str = 'accuracy')
 compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.Tensor, numpy.ndarray]) -> None
 ```
 
-Computes accuracy metric given the predicted label and the true label.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  | Predicted label. |
@@ -133,7 +131,6 @@ update_state(values: numpy.ndarray)
 ```
 
 Update the state of the metric by summing up the metric values and updating the counts by adding
-
 the number of instances for which the metric was computed (first dimension).
 
 | Name | Type | Default | Description |

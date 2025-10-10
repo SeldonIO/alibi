@@ -62,8 +62,6 @@ BaseSimilarityExplainer(self, predictor: 'Union[tensorflow.keras.Model, torch.nn
 fit(X_train: Union[numpy.ndarray, List[typing.Any]], Y_train: numpy.ndarray) -> alibi.api.interfaces.Explainer
 ```
 
-Fit the explainer. If ``self.precompute_grads == True`` then the gradients are precomputed and stored.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X_train` | `Union[numpy.ndarray, List[typing.Any]]` |  | Training data. |
@@ -77,8 +75,6 @@ Fit the explainer. If ``self.precompute_grads == True`` then the gradients are p
 ```python
 reset_predictor(predictor: Union[tensorflow.keras.Model, torch.nn.Module]) -> None
 ```
-
-Resets the predictor to the given predictor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

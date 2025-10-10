@@ -66,8 +66,6 @@ Counterfactual(self, predict_fn: Union[Callable[[numpy.ndarray], numpy.ndarray],
 explain(X: numpy.ndarray) -> alibi.api.interfaces.Explanation
 ```
 
-Explain an instance and return the counterfactual with metadata.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | Instance to be explained. |
@@ -80,8 +78,6 @@ Explain an instance and return the counterfactual with metadata.
 ```python
 fit(X: numpy.ndarray, y: Optional[numpy.ndarray]) -> alibi.explainers.counterfactual.Counterfactual
 ```
-
-Fit method - currently unused as the counterfactual search is fully unsupervised.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -96,8 +92,6 @@ Fit method - currently unused as the counterfactual search is fully unsupervised
 ```python
 reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> None
 ```
-
-Resets the predictor function/model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

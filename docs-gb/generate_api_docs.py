@@ -161,137 +161,137 @@ def typing_get_type_hints_safe(obj: Any) -> Dict[str, Any]:
         return {}
 
 def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
-    """Parse docstring into a structured dict. Uses docstring_parser if available."""
-    result = {
-        "short": "",
-        "long": "",
-        "params": [],   # list of dict(name,type,default,desc)
-        "returns": None,  # dict(type, desc)
-        "raises": [],   # list of dict(type, desc)
-        "examples": []  # list of code blocks or strings
-    }
+    result = {"short": "", "long": "", "params": [], "returns": None, "raises": [], "examples": []}
     if not doc:
         return result
 
-    # First try docstring_parser (NumPy/Google/reST)
+    cleaned = inspect.cleandoc(doc)
+    section_names = {
+        "parameter", "parameters", "arg", "args", "argument", "arguments",
+        "keyword", "keywords", "return", "returns", "yield", "yields",
+        "raise", "raises", "example", "examples", "note", "notes", "see also",
+    }
+
+    def is_section_heading(line: str) -> bool:
+        return line and line.strip().strip(":").lower() in section_names
+
+    def trim_narrative(text: str) -> str:
+        body = text.strip()
+        pattern = re.compile(
+            r"""
+            ^\s*
+            (Parameters?|Args?|Arguments?|Keywords?|Returns?|Yields?|Raises?|Examples?|Notes?|See\s+Also)
+            \s*
+            (?:[:]\s*$|\s*$|\n\s*[-=]{2,}\s*$)
+            """,
+            re.IGNORECASE | re.MULTILINE | re.VERBOSE,
+        )
+        match = pattern.search(body)
+        return body[:match.start()].rstrip() if match else body
+
+    def extract_numpy_params(text: str) -> List[Dict[str, str]]:
+        params: List[Dict[str, str]] = []
+        lines = text.splitlines()
+        i = 0
+        while i < len(lines):
+            if lines[i].strip().lower() == "parameters":
+                i += 1
+                while i < len(lines) and lines[i].strip() and set(lines[i].strip()) <= {"-", "="}:
+                    i += 1
+                current_name: Optional[str] = None
+                current_type = ""
+                desc_lines: List[str] = []
+                while i < len(lines):
+                    raw = lines[i]
+                    stripped = raw.strip()
+                    if not stripped:
+                        if current_name:
+                            desc_lines.append("")
+                        i += 1
+                        continue
+                    if not raw[:1].isspace():
+                        heading = stripped.rstrip(":").lower()
+                        if heading in section_names:
+                            break
+                        if current_name:
+                            desc = " ".join(s for s in (d.strip() for d in desc_lines) if s)
+                            params.append({"name": current_name, "type": current_type, "default": "", "desc": desc})
+                        header = stripped
+                        if ":" in header:
+                            name_part, type_part = header.split(":", 1)
+                            current_name = name_part.strip()
+                            current_type = type_part.strip()
+                        else:
+                            tokens = header.split()
+                            current_name = tokens[0]
+                            current_type = header[len(current_name):].strip()
+                        desc_lines = []
+                    else:
+                        if current_name:
+                            desc_lines.append(stripped)
+                    i += 1
+                if current_name:
+                    desc = " ".join(s for s in (d.strip() for d in desc_lines) if s)
+                    params.append({"name": current_name, "type": current_type, "default": "", "desc": desc})
+                break
+            i += 1
+        return params
+
+    parsed = None
     if _DOCSTRING_PARSER is not None:
         try:
-            parsed = _DOCSTRING_PARSER.parse(doc, style=_DOCSTRING_PARSER.DocstringStyle.AUTO)
-            result["short"] = (parsed.short_description or "").strip()
-            result["long"] = (parsed.long_description or "").strip()
-
-            # parameters
-            for p in parsed.params:
-                result["params"].append({
-                    "name": p.arg_name or "",
-                    "type": (p.type_name or "").strip(),
-                    "default": (p.default or "").strip(),
-                    "desc": (p.description or "").strip(),
-                })
-
-            # returns (type + description if present)
-            if parsed.returns:
-                result["returns"] = {
-                    "type": (parsed.returns.type_name or "").strip(),
-                    "desc": (parsed.returns.description or "").strip(),
-                }
-
-            # raises
-            for r in parsed.raises:
-                result["raises"].append({
-                    "type": (r.type_name or "").strip(),
-                    "desc": (r.description or "").strip(),
-                })
-
-            # examples (best effort)
-            for meta in getattr(parsed, "meta", []):
-                if str(meta.args or [""])[0].lower().startswith("example"):
-                    if meta.description:
-                        result["examples"].append(meta.description.strip())
-
+            parsed = _DOCSTRING_PARSER.parse(cleaned, style=_DOCSTRING_PARSER.DocstringStyle.NUMPYDOC)
         except Exception:
-            pass
+            parsed = None
 
-    # Fallback for short/long if parser didn't get them
-    if not result["short"] and doc:
-        lines = doc.strip().splitlines()
-        result["short"] = lines[0].strip()
-        if len(lines) > 1:
-            result["long"] = "\n".join(l.rstrip() for l in lines[1:]).strip()
+    if parsed:
+        result["short"] = (parsed.short_description or "").strip()
+        result["long"] = trim_narrative(cleaned)
+        for p in parsed.params:
+            result["params"].append({
+                "name": p.arg_name or "",
+                "type": (p.type_name or "").strip(),
+                "default": (p.default or "").strip(),
+                "desc": (p.description or "").strip(),
+            })
+        if parsed.returns:
+            result["returns"] = {
+                "type": (parsed.returns.type_name or "").strip(),
+                "desc": (parsed.returns.description or "").strip(),
+            }
+        for r in parsed.raises:
+            result["raises"].append({
+                "type": (r.type_name or "").strip(),
+                "desc": (r.description or "").strip(),
+            })
+        for meta in getattr(parsed, "meta", []):
+            if str(meta.args or [""])[0].lower().startswith("example") and meta.description:
+                result["examples"].append(meta.description.strip())
+    else:
+        result["short"] = ""
+        result["long"] = trim_narrative(cleaned)
 
-    # ---- NumPy-style fallback for sections without trailing colon (e.g. "Parameters" + underline) ----
-    if not result["params"]:
-        numpy_params_block = re.search(
-            r"(^|\n)Parameters\s*\n[-=]{3,}\n(?P<body>.*?)(\n[A-Z][A-Za-z0-9 _]*\n[-=]{3,}\n|$)",
-            doc,
-            flags=re.DOTALL,
-        )
-        if numpy_params_block:
-            body = numpy_params_block.group("body").rstrip()
-            lines = body.splitlines()
-            i = 0
-            while i < len(lines):
-                line = lines[i]
-                if not line.strip():
-                    i += 1
-                    continue
-                m = re.match(r"^\s*([A-Za-z_][\w]*)\s*(?:[:]\s*([^,\n]+))?", line)
-                if m:
-                    name = m.group(1)
-                    typ = (m.group(2) or "").strip()
-                    i += 1
-                    desc_lines = []
-                    while i < len(lines) and (lines[i].startswith("    ") or (lines[i].strip() and lines[i][0].isspace() and not re.match(r"^\s*[A-Za-z_][\w]*\s*(?:[:]\s*[^,\n]+)?$", lines[i]))):
-                        desc_lines.append(lines[i].strip())
-                        i += 1
-                    desc = " ".join(dl.rstrip() for dl in desc_lines).strip()
-                    if not any(p["name"] == name for p in result["params"]):
-                        result["params"].append({"name": name, "type": typ, "default": "", "desc": desc})
-                    continue
-                i += 1
+    numpy_params = extract_numpy_params(cleaned)
+    if numpy_params:
+        if not result["params"]:
+            result["params"] = numpy_params
+        else:
+            param_map = {p["name"]: p for p in result["params"] if p.get("name")}
+            for np_param in numpy_params:
+                entry = param_map.get(np_param["name"])
+                if entry is None:
+                    result["params"].append(np_param)
+                else:
+                    if not entry.get("type") and np_param.get("type"):
+                        entry["type"] = np_param["type"]
+                    if not entry.get("desc") and np_param.get("desc"):
+                        entry["desc"] = np_param["desc"]
 
-    # --- Remove structured sections from the free-text "long" description ---
-    def _strip_known_sections(block: str) -> str:
-        if not block:
-            return block
-        # Sections we consider structured (handled elsewhere by the script)
-        sect_names = r"(Parameters|Returns|Return type|Raises|Yields|Attributes|Notes|Examples|See Also)"
-        # Style A: Google/reST-like "Section:\n<content>"
-        pat_colon = re.compile(
-            rf"(^|\n){sect_names}\s*:\s*\n.*?(?=\n[A-Z][A-Za-z0-9 _]*\s*:\s*\n|$)",
-            flags=re.DOTALL,
-        )
-        # Style B: NumPy-like
-        #   Section
-        #   -------
-        #   <content>
-        pat_underline = re.compile(
-            rf"(^|\n){sect_names}\s*\n[-=]{{3,}}\n.*?(?=\n[A-Z][A-Za-z0-9 _]*\n[-=]{{3,}}\n|$)",
-            flags=re.DOTALL,
-        )
-        out = pat_colon.sub("\n", block)
-        out = pat_underline.sub("\n", out)
-        # collapse excess blank lines introduced by removals
-        out = re.sub(r"\n{3,}", "\n\n", out).strip()
-        return out
-
-    # --- Remove reStructuredText tables ---
-    def _strip_rst_tables(block: str) -> str:
-        if not block:
-            return block
-        # Pattern to match reStructuredText table blocks (lines with +---+ borders)
-        # This matches from a line starting with + through to a blank line or end
-        rst_table_pattern = re.compile(
-            r"(^|\n)\+[-+=]+\+[^\n]*\n(?:[+|][^\n]*\n)*",
-            flags=re.MULTILINE
-        )
-        return rst_table_pattern.sub("\n", block)
-
-    # Clean the "long" narrative
-    if result["long"]:
-        result["long"] = _strip_known_sections(result["long"])
-        result["long"] = _strip_rst_tables(result["long"])
-        result["long"] = result["long"].strip()
+    if result["short"] and is_section_heading(result["short"]):
+        result["short"] = ""
+    result["long"] = trim_narrative(cleaned) if result["long"] else ""
+    if not result["long"]:
+        result["long"] = ""
 
     return result
 
@@ -567,9 +567,10 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             if link:
                 out.append(f"[View source]({link})\n")
             if not is_inherited_method_doc:
+                # Only include narrative description if it doesn't look like a Parameters section
                 if fn_ds["short"]:
                     out.append(fn_ds["short"] + "\n")
-                if fn_ds["long"]:
+                if fn_ds["long"] and not fn_ds["params"]:
                     out.append(fn_ds["long"] + "\n")
             params_table = render_params_table(fn_ds["params"], sig, hints)
             if params_table:
@@ -604,7 +605,8 @@ def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_
         out.append(f"[View source]({link})\n")
     if ds["short"]:
         out.append(ds["short"] + "\n")
-    if ds["long"]:
+    # Only include long description if it doesn't look like a Parameters section
+    if ds["long"] and not re.search(r"Parameters\s*\n+\s*[-=]+", ds["long"]):
         out.append(ds["long"] + "\n")
     sig = None
     hints = {}
@@ -613,7 +615,6 @@ def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_
         hints = typing_get_type_hints_safe(fn)
     except Exception:
         pass
-    # Render parameters table only (remove redundant text-based parameters section)
     params_table = render_params_table(ds["params"], sig, hints)
     if params_table:
         out.append(params_table + "\n")

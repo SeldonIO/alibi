@@ -66,10 +66,6 @@ CEM(self, predict: Union[Callable[[numpy.ndarray], numpy.ndarray], keras.src.mod
 attack(X: numpy.ndarray, Y: numpy.ndarray, verbose: bool = False) -> Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]
 ```
 
-Find pertinent negative or pertinent positive for instance `X` using a fast iterative
-
-shrinkage-thresholding algorithm (FISTA).
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | Instance to attack. |
@@ -84,8 +80,6 @@ shrinkage-thresholding algorithm (FISTA).
 ```python
 explain(X: numpy.ndarray, Y: Optional[numpy.ndarray] = None, verbose: bool = False) -> alibi.api.interfaces.Explanation
 ```
-
-Explain instance and return PP or PN with metadata.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -102,8 +96,6 @@ Explain instance and return PP or PN with metadata.
 fit(train_data: numpy.ndarray, no_info_type: str = 'median') -> alibi.explainers.cem.CEM
 ```
 
-Get 'no information' values from the training data.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `train_data` | `numpy.ndarray` |  | Representative sample from the training data. |
@@ -117,10 +109,6 @@ Get 'no information' values from the training data.
 ```python
 get_gradients(X: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
 ```
-
-Compute numerical gradients of the attack loss term:
-
-`dL/dx = (dL/dP)*(dP/dx)` with `L = loss_attack_s; P = predict; x = adv_s`
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -136,8 +124,6 @@ Compute numerical gradients of the attack loss term:
 loss_fn(pred_proba: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
 ```
 
-Compute the attack loss.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `pred_proba` | `numpy.ndarray` |  | Prediction probabilities of an instance. |
@@ -151,8 +137,6 @@ Compute the attack loss.
 ```python
 perturb(X: numpy.ndarray, eps: Union[float, numpy.ndarray], proba: bool = False) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
-
-Apply perturbation to instance or prediction probabilities. Used for numerical calculation of gradients.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -168,8 +152,6 @@ Apply perturbation to instance or prediction probabilities. Used for numerical c
 ```python
 reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> None
 ```
-
-Resets the predictor function/model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

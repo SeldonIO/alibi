@@ -7,7 +7,6 @@ abdm(X: numpy.ndarray, cat_vars: dict, cat_vars_bin: dict = {})
 ```
 
 Calculate the pair-wise distances between categories of a categorical variable using
-
 the Association-Based Distance Metric based on Le et al (2005).
 http://www.jaist.ac.jp/~bao/papers/N26.pdf
 
@@ -24,7 +23,6 @@ batch_compute_kernel_matrix(x: Union[list, numpy.ndarray], y: Union[list, numpy.
 ```
 
 Compute the kernel matrix between `x` and `y` by filling in blocks of size
-
 `batch_size x batch_size` at a time.
 
 | Name | Type | Default | Description |
@@ -83,7 +81,6 @@ mvdm(X: numpy.ndarray, y: numpy.ndarray, cat_vars: dict, alpha: int = 1) -> Dict
 ```
 
 Calculate the pair-wise distances between categories of a categorical variable using
-
 the Modified Value Difference Measure based on Cost et al (1993).
 https://link.springer.com/article/10.1023/A:1022664626993
 

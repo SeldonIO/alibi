@@ -29,12 +29,12 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `LOSS_FNS`
 ```python
-LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x167f5bdc0>, 'mean_...
+LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x1603b4c10>, 'mean_...
 ```
 
 ### `SCORE_FNS`
 ```python
-SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x167e4c8b0>, 'precision': <function...
+SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x160380700>, 'precision': <function...
 ```
 
 ## `Kind`
@@ -54,7 +54,6 @@ Enumeration of supported method.
 _Inherits from:_ `Explainer`, `ABC`, `Base`
 
 Implementation of the permutation feature importance for tabular datasets. The method measure the importance
-
 of a feature as the relative increase/decrease in the loss/score function when the feature values are permuted.
 Supports black-box models.
 
@@ -73,7 +72,7 @@ PermutationImportance(self, predictor: Callable[[numpy.ndarray], numpy.ndarray],
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `predictor` | `Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]` |  | A prediction function which receives as input a `numpy` array of size `N x F`, and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input instances, `F` is the number of features, and `T` is the number of targets. Note that the output shape must be compatible with the loss and score functions provided in `loss_fns` and `score_fns`. |
-| `loss_fns` | `Union[Literal[mean_absolute_error, mean_squared_error, mean_squared_log_error, mean_absolute_percentage_error, log_loss], List[Literal[mean_absolute_error, mean_squared_error, mean_squared_log_error, mean_absolute_percentage_error, log_loss]], Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>, typing.Optional[numpy.ndarray]]], float], Dict[str, Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>, typing.Optional[numpy.ndarray]]], float]], None]` | `None` | A literal, or a list of literals, or a loss function, or a dictionary of loss functions having as keys the names of the loss functions and as values the loss functions (i.e., lower values are better). The available literal values are described in :py:data:`alibi.explainers.permutation_importance.LOSS_FNS`. Note that the `predictor` output must be compatible with every loss function. Every loss function is expected to receive the following arguments: |
+| `loss_fns` | `Union[Literal[mean_absolute_error, mean_squared_error, mean_squared_log_error, mean_absolute_percentage_error, log_loss], List[Literal[mean_absolute_error, mean_squared_error, mean_squared_log_error, mean_absolute_percentage_error, log_loss]], Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>, typing.Optional[numpy.ndarray]]], float], Dict[str, Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>, typing.Optional[numpy.ndarray]]], float]], None]` | `None` | A literal, or a list of literals, or a loss function, or a dictionary of loss functions having as keys the names of the loss functions and as values the loss functions (i.e., lower values are better). The available literal values are described in :py:data:`alibi.explainers.permutation_importance.LOSS_FNS`. Note that the `predictor` output must be compatible with every loss function. Every loss function is expected to receive the following arguments: - `y_true` : ``np.ndarray`` -  a `numpy` array of ground-truth labels. - `y_pred` | `y_score` : ``np.ndarray`` - a `numpy` array of model predictions. This corresponds to              the output of the model. - `sample_weight`: ``Optional[np.ndarray]`` - a `numpy` array of sample weights. |
 | `score_fns` | `Union[Literal[accuracy, precision, recall, f1, roc_auc, r2], List[Literal[accuracy, precision, recall, f1, roc_auc, r2]], Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>, typing.Optional[numpy.ndarray]]], float], Dict[str, Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>, typing.Optional[numpy.ndarray]]], float]], None]` | `None` | A literal, or a list or literals, or a score function, or a dictionary of score functions having as keys the names of the score functions and as values the score functions (i.e, higher values are better). The available literal values are described in :py:data:`alibi.explainers.permutation_importance.SCORE_FNS`. As with the `loss_fns`, the `predictor` output must be compatible with every score function and the score function must have the same signature presented in the `loss_fns` parameter description. |
 | `feature_names` | `Optional[List[str]]` | `None` | A list of feature names used for displaying results. |
 | `verbose` | `bool` | `False` | Whether to print the progress of the explainer. |
@@ -85,10 +84,6 @@ PermutationImportance(self, predictor: Callable[[numpy.ndarray], numpy.ndarray],
 ```python
 explain(X: numpy.ndarray, y: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, .Ellipsis]]]] = None, method: Literal[estimate, exact] = 'estimate', kind: Literal[ratio, difference] = 'ratio', n_repeats: int = 50, sample_weight: Optional[numpy.ndarray] = None) -> alibi.api.interfaces.Explanation
 ```
-
-Computes the permutation feature importance for each feature with respect to the given loss or score
-
-functions and the dataset `(X, y)`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -108,8 +103,6 @@ functions and the dataset `(X, y)`.
 ```python
 reset_predictor(predictor: Callable) -> None
 ```
-
-Resets the predictor function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -137,8 +130,7 @@ Plot permutation feature importance on `matplotlib` axes.
 | `top_k` | `Optional[int]` | `None` | Number of top k values to be displayed if the ``sort=True``. If not provided, then all values will be displayed. |
 | `ax` | `Union[ForwardRef('plt.Axes'), numpy.ndarray, None]` | `None` | A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on. |
 | `bar_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.pyplot.barh`_ function. |
-| `fig_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.figure.set`_ function. |
-| `https` | `//matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html` |  |  |
+| `fig_kw` | `Optional[dict]` | `None` | Keyword arguments passed to the `matplotlib.figure.set`_ function. .. _matplotlib.pyplot.barh: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html .. _matplotlib.figure.set: https://matplotlib.org/stable/api/figure_api.html |
 
 **Returns**
 - Type: `plt.Axes`

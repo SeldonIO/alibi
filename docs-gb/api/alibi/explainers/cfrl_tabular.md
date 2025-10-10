@@ -66,7 +66,7 @@ CounterfactualRLTabular(self, predictor: Callable[[numpy.ndarray], numpy.ndarray
 | `latent_dim` | `Optional[int]` | `None` | Auto-encoder latent dimension. Can be omitted if the actor network is user specified. |
 | `backend` | `str` | `'tensorflow'` | Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``. |
 | `seed` | `int` | `0` | Seed for reproducibility. The results are not reproducible for ``'tensorflow'`` backend. |
-| `Used` |  |  |  |
+| `**kwargs` |  |  | Used to replace any default parameter from :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS`. |
 
 ### Methods
 
@@ -75,8 +75,6 @@ CounterfactualRLTabular(self, predictor: Callable[[numpy.ndarray], numpy.ndarray
 ```python
 explain(X: numpy.ndarray, Y_t: numpy.ndarray, C: Optional[List[Dict[str, List[Union[float, str]]]]] = None, batch_size: int = 100, diversity: bool = False, num_samples: int = 1, patience: int = 1000, tolerance: float = 0.001) -> alibi.api.interfaces.Explanation
 ```
-
-Computes counterfactuals for the given instances conditioned on the target and the conditional vector.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -110,7 +108,6 @@ fit(X: numpy.ndarray) -> alibi.api.interfaces.Explainer
 _Inherits from:_ `Postprocessing`, `ABC`
 
 Tabular sampling post-processing. Given the output of the heterogeneous auto-encoder the post-processing
-
 functions samples the output according to the conditional vector. Note that the original input instance
 is required to perform the conditional sampling.
 

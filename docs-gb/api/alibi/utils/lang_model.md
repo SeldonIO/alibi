@@ -48,16 +48,6 @@ BertBaseUncased(self, preloading: bool = True)
 is_subword_prefix(token: str) -> bool
 ```
 
-Checks if the given token is a part of the tail of a word. Note that a word can
-
-be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
-Each language model has a convention on how to mark a tail token. For example
-`DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
-set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
-with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
-the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
-this method has to be implemented for each language model. See module docstring for namings.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `token` | `str` |  | Token to be checked if it is a subword. |
@@ -92,16 +82,6 @@ DistilbertBaseUncased(self, preloading: bool = True)
 ```python
 is_subword_prefix(token: str) -> bool
 ```
-
-Checks if the given token is a part of the tail of a word. Note that a word can
-
-be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
-Each language model has a convention on how to mark a tail token. For example
-`DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
-set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
-with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
-the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
-this method has to be implemented for each language model. See module docstring for namings.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -141,8 +121,6 @@ LanguageModel(self, model_path: str, preloading: bool = True)
 from_disk(path: Union[str, pathlib.Path])
 ```
 
-Loads a model from disk.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `path` | `Union[str, pathlib.Path]` |  | Path to the checkpoint. |
@@ -152,12 +130,6 @@ Loads a model from disk.
 ```python
 head_tail_split(text: str) -> Tuple[str, str, List[str], List[str]]
 ```
-
-Split the text in head and tail. Some language models support a maximum
-
-number of tokens. Thus is necessary to split the text to meet this constraint.
-After the text is split in head and tail, only the head is considered for operation.
-Thus the tail will remain unchanged.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -172,8 +144,6 @@ Thus the tail will remain unchanged.
 is_punctuation(token: str, punctuation: str) -> bool
 ```
 
-Checks if the given token is punctuation.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `token` | `str` |  | Token to be checked if it is punctuation. |
@@ -187,8 +157,6 @@ Checks if the given token is punctuation.
 ```python
 is_stop_word(tokenized_text: List[str], start_idx: int, punctuation: str, stopwords: Optional[List[str]]) -> bool
 ```
-
-Checks if the given word starting at the given index is in the list of stopwords.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -206,16 +174,6 @@ Checks if the given word starting at the given index is in the list of stopwords
 is_subword_prefix(token: str) -> bool
 ```
 
-Checks if the given token is a part of the tail of a word. Note that a word can
-
-be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
-Each language model has a convention on how to mark a tail token. For example
-`DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
-set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
-with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
-the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
-this method has to be implemented for each language model. See module docstring for namings.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `token` | `str` |  | Token to be checked if it is a subword. |
@@ -228,8 +186,6 @@ this method has to be implemented for each language model. See module docstring 
 ```python
 predict_batch_lm(x: transformers.tokenization_utils_base.BatchEncoding, vocab_size: int, batch_size: int) -> numpy.ndarray
 ```
-
-`Tensorflow` language model batch predictions for `AnchorText`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -246,13 +202,6 @@ predict_batch_lm(x: transformers.tokenization_utils_base.BatchEncoding, vocab_si
 select_word(tokenized_text: List[str], start_idx: int, punctuation: str) -> str
 ```
 
-Given a tokenized text and the starting index of a word, the function selects the entire word.
-
-Note that a word is composed of multiple tokens (e.g., ``word = [head_token tail_token_1
-tail_token_2 ... tail_token_k]``). The tail tokens can be identified based on the
-presence/absence of `SUBWORD_PREFIX`. See :py:meth:`alibi.utils.lang_model.LanguageModel.is_subword_prefix`
-for more details.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `tokenized_text` | `List[str]` |  | Tokenized text. |
@@ -267,8 +216,6 @@ for more details.
 ```python
 to_disk(path: Union[str, pathlib.Path])
 ```
-
-Saves a model to disk.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -301,16 +248,6 @@ RobertaBase(self, preloading: bool = True)
 ```python
 is_subword_prefix(token: str) -> bool
 ```
-
-Checks if the given token is a part of the tail of a word. Note that a word can
-
-be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
-Each language model has a convention on how to mark a tail token. For example
-`DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
-set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
-with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
-the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
-this method has to be implemented for each language model. See module docstring for namings.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

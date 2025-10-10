@@ -15,8 +15,6 @@ _Inherits from:_ `ABC`
 predict_batches(X: numpy.ndarray, predictor: Callable, batch_size: int) -> numpy.ndarray
 ```
 
-Predict the classification labels of the input dataset. This is performed in batches.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | Input to be classified. |
@@ -49,7 +47,6 @@ get_classification_reward(Y_pred: numpy.ndarray, Y_true: numpy.ndarray)
 ```
 
 Computes classification reward per instance given the prediction output and the true label. The classification
-
 reward is a sparse/binary reward: 1 if the most likely classes from the prediction output and the label match,
 0 otherwise.
 

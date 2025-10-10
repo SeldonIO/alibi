@@ -9,7 +9,6 @@ output.
 _Inherits from:_ `Model`, `TensorFlowTrainer`, `Trainer`, `Layer`, `TFLayer`, `KerasAutoTrackable`, `AutoTrackable`, `Trackable`, `Operation`, `KerasSaveable`
 
 Autoencoder. Standard autoencoder architecture. The model is composed from two submodules, the encoder and
-
 the decoder. The forward pass consists of passing the input to the encoder, obtain the input embedding and
 pass the embedding through the decoder. The abstraction can be used for multiple data modalities.
 
@@ -32,12 +31,10 @@ AE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.model.
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> Union[tensorflow.python.framework.tensor.Tensor, List[tensorflow.python.framework.tensor.Tensor]]
 ```
 
-Forward pass.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments passed to encoder/decoder `call` method. |
 
 **Returns**
 - Type: `Union[tensorflow.python.framework.tensor.Tensor, List[tensorflow.python.framework.tensor.Tensor]]`
@@ -47,7 +44,6 @@ Forward pass.
 _Inherits from:_ `AE`, `Model`, `TensorFlowTrainer`, `Trainer`, `Layer`, `TFLayer`, `KerasAutoTrackable`, `AutoTrackable`, `Trackable`, `Operation`, `KerasSaveable`
 
 Heterogeneous autoencoder. The model follows the standard autoencoder architecture and includes and additional
-
 type check to ensure that the output of the model is a list of tensors. For more details, see
 :py:class:`alibi.models.pytorch.autoencoder.AE`.
 
@@ -70,8 +66,6 @@ HeAE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.mode
 build(input_shape: Tuple[int, .Ellipsis]) -> None
 ```
 
-Build method.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `input_shape` | `Tuple[int, .Ellipsis]` |  | Tensor's input shape. |
@@ -85,12 +79,10 @@ Build method.
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> List[tensorflow.python.framework.tensor.Tensor]
 ```
 
-Forward pass.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `**kwargs` |  |  | Other arguments passed to the encoder/decoder. |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`

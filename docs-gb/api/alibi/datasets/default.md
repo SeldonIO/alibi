@@ -52,7 +52,6 @@ fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, url_
 ```
 
 Downloads and pre-processes 'adult' dataset.
-
 More info: http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/
 
 | Name | Type | Default | Description |
@@ -89,7 +88,6 @@ fetch_imagenet_10(url_id: int = 0) -> Dict
 ```
 
 Sample dataset extracted from imagenet in a dictionary format.
-
 The train set contains 1000 random samples, 100 for each of the following 10 selected classes:
 
 * stingray
@@ -135,7 +133,6 @@ load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Union[al
 ```
 
 A small sample of Imagenet-like public domain images of cats used primarily for examples.
-
 The images were hand-collected using flickr.com by searching for various cat types, filtered by images
 in the public domain.
 

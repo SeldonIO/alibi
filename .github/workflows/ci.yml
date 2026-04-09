@@ -35,7 +35,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
         include: # Run windows tests on only one python version
           - os: windows-latest
             python-version: '3.11'
@@ -53,10 +53,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
-          python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap]
+          if [ "${{ matrix.python-version }}" = "3.14" ]; then
+            python -m pip install --upgrade --upgrade-strategy eager .[torch,shap]
+          else
+            python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap]
+          fi
           if [ "$RUNNER_OS" != "Windows" ]; then  
           # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
-            python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap,ray]  # include other deps so that they are taking into account during ray install
+            if [ "${{ matrix.python-version }}" = "3.14" ]; then
+              python -m pip install --upgrade --upgrade-strategy eager .[torch,shap,ray]  # include other deps so that they are taking into account during ray install
+            else
+              python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap,ray]  # include other deps so that they are taking into account during ray install
+            fi
           fi
           python -m spacy download en_core_web_md
           python -m pip freeze
@@ -68,7 +76,12 @@ jobs:
           limit-access-to-actor: true
 
       - name: Test with pytest
-        run: make test
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.14" ]; then
+            pytest --no-cov alibi/tests/test_dep_management.py --opt-dep=shap
+          else
+            make test
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

@@ -7,7 +7,7 @@
 "Werkzeug","3.1.3","BSD License"
 "absl-py","2.1.0","Apache Software License"
 "aiosignal","1.3.1","Apache Software License"
-"alibi","0.9.7.dev0","Other/Proprietary License"
+"alibi","0.9.8.dev0","Other/Proprietary License"
 "annotated-types","0.7.0","MIT License"
 "astunparse","1.6.3","BSD License"
 "attrs","23.2.0","MIT License"

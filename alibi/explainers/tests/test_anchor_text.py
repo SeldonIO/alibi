@@ -154,6 +154,24 @@ def test_neighbors(nlp):
     assert np.isclose((np.sort(similarity_score)[::-1] - similarity_score).sum(), 0.)
 
 
+def test_metadata_excludes_invalid_params(nlp):
+    """Regression test for #459: ``meta['params']`` should record only the
+    validated perturbation parameters, not misspelled/invalid kwargs."""
+    def predictor(x):
+        return np.zeros((len(x), 2))
+
+    explainer = AnchorText(
+        predictor=predictor,
+        sampling_strategy=AnchorText.SAMPLING_UNKNOWN,
+        nlp=nlp,
+        sample_proba=0.6,       # valid perturbation parameter
+        not_a_real_param=123,   # invalid / misspelled kwarg
+    )
+    params = explainer.meta['params']
+    assert 'not_a_real_param' not in params
+    assert params['sample_proba'] == 0.6
+
+
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('text, min_num',
                          [("This is ... a sentence, with a long ?!?, lot of punctuation; test this.", 5)])

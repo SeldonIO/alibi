@@ -186,8 +186,9 @@ class AnchorText(Explainer):
         self.model: Union['spacy.language.Language', LanguageModel]  #: Language model to be used.
 
         # validate kwargs
-        self.perturb_opts, all_opts = self._validate_kwargs(sampling_strategy=sampling_strategy, nlp=nlp,
-                                                            language_model=language_model, **kwargs)
+        self.perturb_opts = self._validate_kwargs(
+            sampling_strategy=sampling_strategy, nlp=nlp,
+            language_model=language_model, **kwargs)
 
         # set perturbation
         self.perturbation: Any = \
@@ -195,13 +196,13 @@ class AnchorText(Explainer):
 
         # update metadata
         self.meta['params'].update(seed=seed)
-        self.meta['params'].update(**all_opts)
+        self.meta['params'].update(**self.perturb_opts)
 
     def _validate_kwargs(self,
                          sampling_strategy: str,
                          nlp: Optional['spacy.language.Language'] = None,
                          language_model: Optional['LanguageModel'] = None,
-                         **kwargs: Any) -> Tuple[dict, dict]:
+                         **kwargs: Any) -> dict:
 
         # set sampling method
         sampling_strategy = sampling_strategy.strip().lower()
@@ -237,7 +238,6 @@ class AnchorText(Explainer):
         # get default args
         default_args: dict = self.DEFAULTS[self.sampling_strategy]
         perturb_opts: dict = deepcopy(default_args)  # contains only the perturbation params
-        all_opts = deepcopy(default_args)  # contains params + some potential incorrect params
 
         # compute common keys
         allowed_keys = set(perturb_opts.keys())
@@ -251,8 +251,7 @@ class AnchorText(Explainer):
 
         # update defaults args and all params
         perturb_opts.update({key: kwargs[key] for key in common_keys})
-        all_opts.update(kwargs)
-        return perturb_opts, all_opts
+        return perturb_opts
 
     def sampler(self, anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True) -> \
             Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:

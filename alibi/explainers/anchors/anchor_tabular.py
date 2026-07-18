@@ -26,8 +26,10 @@ class TabularSampler:
     # Probably related to: https://github.com/sphinx-doc/sphinx/issues/7427
     instance_label: int  #: The label of the instance to be explained.
 
-    def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
-                 categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,
+    def __init__(self, predictor: Callable[[np.ndarray], np.ndarray],
+                 disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
+                 categorical_features: List[int], feature_names: List[str],
+                 feature_values: Dict[int, List[str]], n_covered_ex: int = 10,
                  seed: Optional[int] = None) -> None:
         """
         Parameters
